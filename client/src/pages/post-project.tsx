@@ -57,13 +57,17 @@ export default function PostProject() {
         formData.append('photos', file);
       });
 
+      // Add homeownerId for demo
+      formData.append('homeownerId', '3');
+
       const response = await fetch('/api/projects', {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create project');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create project');
       }
 
       return response.json();
@@ -74,7 +78,7 @@ export default function PostProject() {
         description: "Your project has been posted and contractors will start bidding soon!",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
-      setLocation(`/projects/${project.id}`);
+      setLocation(`/project-details/${project.id}`);
     },
     onError: (error) => {
       toast({

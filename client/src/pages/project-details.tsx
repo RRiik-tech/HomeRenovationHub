@@ -45,9 +45,10 @@ export default function ProjectDetails() {
     },
   });
 
-  const timeAgo = (date: Date) => {
+  const timeAgo = (date: string | Date) => {
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const projectDate = typeof date === 'string' ? new Date(date) : date;
+    const diffTime = Math.abs(now.getTime() - projectDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays === 1) return "1 day ago";
@@ -55,6 +56,71 @@ export default function ProjectDetails() {
     if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
     return `${Math.ceil(diffDays / 30)} months ago`;
   };
+
+  const submitBidMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("/api/bids", {
+        method: "POST",
+        body: JSON.stringify({
+          projectId: parseInt(id!),
+          contractorId: 1, // Default contractor for demo
+          amount: bidAmount,
+          timeline: bidTimeline,
+          proposal: bidProposal,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "bids"] });
+      setBidAmount("");
+      setBidTimeline("");
+      setBidProposal("");
+      setShowBidForm(false);
+      toast({
+        title: "Success",
+        description: "Bid submitted successfully!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit bid",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAcceptBid = useMutation({
+    mutationFn: async (bidId: number) => {
+      return apiRequest(`/api/bids/${bidId}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status: "accepted" }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "bids"] });
+      toast({
+        title: "Success",
+        description: "Bid accepted successfully!",
+      });
+    },
+  });
+
+  const handleRejectBid = useMutation({
+    mutationFn: async (bidId: number) => {
+      return apiRequest(`/api/bids/${bidId}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status: "rejected" }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "bids"] });
+      toast({
+        title: "Success",
+        description: "Bid rejected",
+      });
+    },
+  });
 
   const getCategoryColor = (category: string) => {
     const colorMap: { [key: string]: string } = {

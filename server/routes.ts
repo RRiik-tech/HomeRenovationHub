@@ -1,10 +1,29 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertContractorSchema, insertProjectSchema, insertBidSchema, insertMessageSchema } from "@shared/schema";
-import multer from "multer";
+import multer, { type Multer } from "multer";
 import path from "path";
+
+// Extend Express Request type for file uploads
+declare global {
+  namespace Express {
+    namespace Multer {
+      interface File {
+        fieldname: string;
+        originalname: string;
+        encoding: string;
+        mimetype: string;
+        size: number;
+        destination: string;
+        filename: string;
+        path: string;
+        buffer: Buffer;
+      }
+    }
+  }
+}
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -116,13 +135,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Project routes
   app.post("/api/projects", upload.array('photos', 10), async (req, res) => {
     try {
-      const projectData = insertProjectSchema.parse(req.body);
+      // Parse form data
+      const projectData = {
+        homeownerId: parseInt(req.body.homeownerId),
+        title: req.body.title,
+        description: req.body.description,
+        category: req.body.category,
+        budget: req.body.budget,
+        timeline: req.body.timeline,
+        address: req.body.address,
+      };
+      
+      // Validate with schema
+      const validatedData = insertProjectSchema.parse(projectData);
       
       // Handle uploaded files
-      const photos = req.files ? (req.files as Express.Multer.File[]).map(file => file.filename) : [];
+      const photos = req.files ? (req.files as Express.Multer.File[]).map((file: Express.Multer.File) => file.filename) : [];
       
       const project = await storage.createProject({
-        ...projectData,
+        ...validatedData,
         photos,
       });
       res.json(project);
@@ -282,6 +313,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       res.json(conversationsWithDetails);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Authentication routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+      
+      const user = await storage.createUser(userData);
+      res.json({ user, message: "User registered successfully" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user || user.password !== password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      res.json({ user, message: "Login successful" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Contractor registration
+  app.post("/api/contractors", async (req, res) => {
+    try {
+      const contractorData = insertContractorSchema.parse(req.body);
+      const contractor = await storage.createContractor(contractorData);
+      res.json(contractor);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Get contractor projects
+  app.get("/api/contractors/:id/bids", async (req, res) => {
+    try {
+      const contractorId = parseInt(req.params.id);
+      const bids = await storage.getBidsByContractor(contractorId);
+      
+      // Get project details for each bid
+      const bidsWithProjects = await Promise.all(
+        bids.map(async (bid) => {
+          const project = await storage.getProject(bid.projectId);
+          const homeowner = project ? await storage.getUser(project.homeownerId) : null;
+          return {
+            ...bid,
+            project: project ? { ...project, homeowner } : null
+          };
+        })
+      );
+      
+      res.json(bidsWithProjects);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Get homeowner projects
+  app.get("/api/users/:id/projects", async (req, res) => {
+    try {
+      const homeownerId = parseInt(req.params.id);
+      const projects = await storage.getProjectsByHomeowner(homeownerId);
+      
+      // Get bid count for each project
+      const projectsWithBids = await Promise.all(
+        projects.map(async (project) => {
+          const bids = await storage.getBidsByProject(project.id);
+          return {
+            ...project,
+            bidCount: bids.length,
+            bids: bids
+          };
+        })
+      );
+      
+      res.json(projectsWithBids);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
