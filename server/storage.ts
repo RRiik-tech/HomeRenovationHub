@@ -41,6 +41,233 @@ export interface IStorage {
   getConversations(userId: number): Promise<any[]>;
 }
 
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const { db } = await import('./db');
+    const { users } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const { db } = await import('./db');
+    const { users } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const { db } = await import('./db');
+    const { users } = await import('@shared/schema');
+    
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async getContractor(id: number): Promise<Contractor | undefined> {
+    const { db } = await import('./db');
+    const { contractors } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const [contractor] = await db.select().from(contractors).where(eq(contractors.id, id));
+    return contractor || undefined;
+  }
+
+  async getContractorByUserId(userId: number): Promise<Contractor | undefined> {
+    const { db } = await import('./db');
+    const { contractors } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const [contractor] = await db.select().from(contractors).where(eq(contractors.userId, userId));
+    return contractor || undefined;
+  }
+
+  async createContractor(insertContractor: InsertContractor): Promise<Contractor> {
+    const { db } = await import('./db');
+    const { contractors } = await import('@shared/schema');
+    
+    const [contractor] = await db
+      .insert(contractors)
+      .values(insertContractor)
+      .returning();
+    return contractor;
+  }
+
+  async getContractors(): Promise<Contractor[]> {
+    const { db } = await import('./db');
+    const { contractors } = await import('@shared/schema');
+    
+    return await db.select().from(contractors);
+  }
+
+  async getContractorsByCategory(category: string): Promise<Contractor[]> {
+    const { db } = await import('./db');
+    const { contractors } = await import('@shared/schema');
+    const { arrayContains } = await import('drizzle-orm');
+    
+    return await db.select().from(contractors).where(arrayContains(contractors.specialties, [category]));
+  }
+
+  async getContractorsByLocation(latitude: number, longitude: number, radiusKm: number = 20): Promise<Contractor[]> {
+    const { db } = await import('./db');
+    const { contractors, users } = await import('@shared/schema');
+    const { eq, sql } = await import('drizzle-orm');
+    
+    const result = await db
+      .select({
+        contractor: contractors,
+        user: users
+      })
+      .from(contractors)
+      .leftJoin(users, eq(contractors.userId, users.id))
+      .where(
+        sql`
+          CASE 
+            WHEN ${users.latitude} IS NOT NULL AND ${users.longitude} IS NOT NULL THEN
+              6371 * acos(cos(radians(${latitude})) * cos(radians(${users.latitude})) * 
+              cos(radians(${users.longitude}) - radians(${longitude})) + 
+              sin(radians(${latitude})) * sin(radians(${users.latitude}))) <= ${radiusKm}
+            ELSE true
+          END
+        `
+      );
+    
+    return result.map(r => r.contractor);
+  }
+
+  async getProject(id: number): Promise<Project | undefined> {
+    const { db } = await import('./db');
+    const { projects } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    return project || undefined;
+  }
+
+  async createProject(insertProject: InsertProject): Promise<Project> {
+    const { db } = await import('./db');
+    const { projects } = await import('@shared/schema');
+    
+    const [project] = await db
+      .insert(projects)
+      .values(insertProject)
+      .returning();
+    return project;
+  }
+
+  async getProjects(): Promise<Project[]> {
+    const { db } = await import('./db');
+    const { projects } = await import('@shared/schema');
+    
+    return await db.select().from(projects);
+  }
+
+  async getProjectsByHomeowner(homeownerId: number): Promise<Project[]> {
+    const { db } = await import('./db');
+    const { projects } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    return await db.select().from(projects).where(eq(projects.homeownerId, homeownerId));
+  }
+
+  async updateProjectStatus(id: number, status: string): Promise<void> {
+    const { db } = await import('./db');
+    const { projects } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    await db.update(projects).set({ status }).where(eq(projects.id, id));
+  }
+
+  async getBid(id: number): Promise<Bid | undefined> {
+    const { db } = await import('./db');
+    const { bids } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const [bid] = await db.select().from(bids).where(eq(bids.id, id));
+    return bid || undefined;
+  }
+
+  async createBid(insertBid: InsertBid): Promise<Bid> {
+    const { db } = await import('./db');
+    const { bids } = await import('@shared/schema');
+    
+    const [bid] = await db
+      .insert(bids)
+      .values(insertBid)
+      .returning();
+    return bid;
+  }
+
+  async getBidsByProject(projectId: number): Promise<Bid[]> {
+    const { db } = await import('./db');
+    const { bids } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    return await db.select().from(bids).where(eq(bids.projectId, projectId));
+  }
+
+  async getBidsByContractor(contractorId: number): Promise<Bid[]> {
+    const { db } = await import('./db');
+    const { bids } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    return await db.select().from(bids).where(eq(bids.contractorId, contractorId));
+  }
+
+  async updateBidStatus(id: number, status: string): Promise<void> {
+    const { db } = await import('./db');
+    const { bids } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    await db.update(bids).set({ status }).where(eq(bids.id, id));
+  }
+
+  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    const { db } = await import('./db');
+    const { messages } = await import('@shared/schema');
+    
+    const [message] = await db
+      .insert(messages)
+      .values(insertMessage)
+      .returning();
+    return message;
+  }
+
+  async getMessagesByProject(projectId: number): Promise<Message[]> {
+    const { db } = await import('./db');
+    const { messages } = await import('@shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    return await db.select().from(messages).where(eq(messages.projectId, projectId));
+  }
+
+  async getConversations(userId: number): Promise<any[]> {
+    const { db } = await import('./db');
+    const { messages, projects, users } = await import('@shared/schema');
+    const { eq, or, sql } = await import('drizzle-orm');
+    
+    const conversations = await db
+      .selectDistinct({
+        projectId: messages.projectId,
+        otherUserId: sql`CASE WHEN ${messages.senderId} = ${userId} THEN ${messages.receiverId} ELSE ${messages.senderId} END`.as('otherUserId'),
+        lastMessage: sql`MAX(${messages.createdAt})`.as('lastMessage')
+      })
+      .from(messages)
+      .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
+      .groupBy(messages.projectId, sql`CASE WHEN ${messages.senderId} = ${userId} THEN ${messages.receiverId} ELSE ${messages.senderId} END`);
+    
+    return conversations;
+  }
+}
+
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private contractors: Map<number, Contractor>;
@@ -379,4 +606,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
