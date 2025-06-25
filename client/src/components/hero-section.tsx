@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import AuthModal from "@/components/auth-modal";
 
 export default function HeroSection() {
   return (
@@ -15,11 +16,11 @@ export default function HeroSection() {
               From kitchen remodels to roof repairs, find the right professional for any job.
             </p>
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-              <Link href="/post-project">
+              <AuthModal>
                 <Button size="lg" className="button-gradient text-white font-semibold hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full sm:w-auto">
-                  Post Your Project
+                  Sign in and get started
                 </Button>
-              </Link>
+              </AuthModal>
               <Link href="/find-contractors">
                 <Button 
                   size="lg" 

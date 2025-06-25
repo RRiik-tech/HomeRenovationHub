@@ -52,12 +52,16 @@ export default function Navigation() {
           </div>
           
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" className="text-gray-700 hover:text-primary">
-              Sign In
-            </Button>
-            <Button className="button-gradient text-white font-medium hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-              Get Started
-            </Button>
+            <AuthModal>
+              <Button variant="ghost" className="text-gray-700 hover:text-primary">
+                Sign In
+              </Button>
+            </AuthModal>
+            <AuthModal>
+              <Button className="button-gradient text-white font-medium hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                Get Started
+              </Button>
+            </AuthModal>
           </div>
 
           {/* Mobile menu button */}
