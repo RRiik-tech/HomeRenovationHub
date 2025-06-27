@@ -116,6 +116,9 @@ Changelog:
 - June 25, 2025. Implemented geolocation tracking and distance calculation
 - June 25, 2025. Fixed authentication system - all "Sign in and get started" buttons now working
 - June 25, 2025. Completed full functionality testing - all features operational
+- June 27, 2025. Connected PostgreSQL database - migrated from in-memory to persistent storage
+- June 27, 2025. Integrated Firebase authentication with Google Sign-In
+- June 27, 2025. Added Firebase user management and secure authentication flow
 ```
 
 ## User Preferences

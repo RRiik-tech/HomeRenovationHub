@@ -351,6 +351,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Firebase authentication endpoint
+  app.post("/api/auth/firebase", async (req, res) => {
+    try {
+      const { firebaseUid, email, displayName, photoURL } = req.body;
+      
+      if (!firebaseUid || !email) {
+        return res.status(400).json({ message: "Firebase UID and email are required" });
+      }
+
+      // Check if user already exists by email
+      let user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        // Create new user from Firebase data
+        const [firstName, ...lastNameParts] = (displayName || email.split('@')[0]).split(' ');
+        const lastName = lastNameParts.join(' ') || '';
+        
+        const userData = {
+          email,
+          username: email.split('@')[0],
+          firstName,
+          lastName,
+          phone: '',
+          address: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          userType: 'homeowner' as const,
+          firebaseUid,
+          photoURL: photoURL || undefined,
+          password: '', // Firebase users don't use password auth
+          isVerified: true, // Firebase users are pre-verified
+        };
+        
+        user = await storage.createUser(userData);
+      }
+      
+      res.json({ user });
+    } catch (error: any) {
+      console.error("Firebase auth error:", error);
+      res.status(400).json({ message: "Firebase authentication failed" });
+    }
+  });
+
   // Contractor registration
   app.post("/api/contractors", async (req, res) => {
     try {

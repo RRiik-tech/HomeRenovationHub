@@ -18,6 +18,8 @@ export const users = pgTable("users", {
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
   userType: text("user_type").notNull(), // 'homeowner' | 'contractor'
   isVerified: boolean("is_verified").default(false),
+  firebaseUid: text("firebase_uid").unique(),
+  photoURL: text("photo_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

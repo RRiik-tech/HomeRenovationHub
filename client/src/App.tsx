@@ -12,6 +12,7 @@ import ContractorProfile from "@/pages/contractor-profile";
 import BidManagement from "@/pages/bid-management";
 import Messaging from "@/pages/messaging";
 import Navigation from "@/components/navigation";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
 function Router() {
   return (
@@ -29,6 +30,8 @@ function Router() {
 }
 
 function App() {
+  useFirebaseAuth(); // Initialize Firebase auth listener
+  
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

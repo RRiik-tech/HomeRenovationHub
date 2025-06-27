@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
+import { signInWithGoogle, isFirebaseConfigured } from "@/lib/firebase";
+import { Chrome } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -54,11 +56,14 @@ export default function AuthModal({ children }: AuthModalProps) {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginData) => {
-      const response = await apiRequest("/api/auth/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      return response;
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message);
+      return result;
     },
     onSuccess: (data) => {
       login(data.user);
@@ -80,11 +85,14 @@ export default function AuthModal({ children }: AuthModalProps) {
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterData) => {
       const { confirmPassword, ...userData } = data;
-      const response = await apiRequest("/api/auth/register", {
+      const response = await fetch("/api/auth/register", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(userData),
       });
-      return response;
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message);
+      return result;
     },
     onSuccess: (data) => {
       login(data.user);
@@ -139,9 +147,37 @@ export default function AuthModal({ children }: AuthModalProps) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Welcome to HomeConnect Pro</DialogTitle>
+          <DialogDescription>
+            Sign in to your account or create a new one to get started.
+          </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="login" className="w-full">
+        {/* Google Sign In Button - only show if Firebase is configured */}
+        {isFirebaseConfigured && (
+          <>
+            <Button 
+              onClick={signInWithGoogle}
+              variant="outline" 
+              className="w-full mb-4"
+            >
+              <Chrome className="mr-2 h-4 w-4" />
+              Continue with Google
+            </Button>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with email
+                </span>
+              </div>
+            </div>
+          </>
+        )}
+        
+        <Tabs defaultValue="login" className="w-full mt-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Sign Up</TabsTrigger>
