@@ -51,18 +51,23 @@ export default function FindContractors() {
 
   const filteredContractors = contractors.filter((contractor: any) => {
     const matchesSearch = !searchTerm || 
-      contractor.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contractor.user?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contractor.user?.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contractor.specialties.some((specialty: string) => 
+      contractor.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contractor.user?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contractor.user?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contractor.specialties?.some((specialty: string) => 
         specialty.toLowerCase().includes(searchTerm.toLowerCase())
       );
 
-    const matchesLocation = !selectedLocation ||
-      contractor.user?.city.toLowerCase().includes(selectedLocation.toLowerCase()) ||
-      contractor.user?.state.toLowerCase().includes(selectedLocation.toLowerCase());
+    const matchesCategory = !selectedCategory || selectedCategory === "all" ||
+      contractor.specialties?.some((specialty: string) => 
+        specialty.toLowerCase().includes(selectedCategory.toLowerCase())
+      );
 
-    return matchesSearch && matchesLocation;
+    const matchesLocation = !selectedLocation ||
+      contractor.user?.city?.toLowerCase().includes(selectedLocation.toLowerCase()) ||
+      contractor.user?.state?.toLowerCase().includes(selectedLocation.toLowerCase());
+
+    return matchesSearch && matchesCategory && matchesLocation;
   });
 
   return (
@@ -166,7 +171,7 @@ export default function FindContractors() {
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   {PROJECT_CATEGORIES.map((category) => (
                     <SelectItem key={category.id} value={category.name}>
                       {category.name}
