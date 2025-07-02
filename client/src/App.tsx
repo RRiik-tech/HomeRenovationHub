@@ -11,8 +11,9 @@ import ProjectDetails from "@/pages/project-details";
 import ContractorProfile from "@/pages/contractor-profile";
 import BidManagement from "@/pages/bid-management";
 import Messaging from "@/pages/messaging";
+import { AIRecommendationsPage } from "@/pages/ai-recommendations";
 import Navigation from "@/components/navigation";
-import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
+import { useGoogleAuth } from "@/hooks/use-google-auth";
 
 function Router() {
   return (
@@ -24,13 +25,15 @@ function Router() {
       <Route path="/contractors/:id" component={ContractorProfile} />
       <Route path="/projects/:id/bids" component={BidManagement} />
       <Route path="/messaging/:projectId?" component={Messaging} />
+      <Route path="/ai/recommendations/:projectId" component={AIRecommendationsPage} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
 function App() {
-  useFirebaseAuth(); // Initialize Firebase auth listener
+  // Initialize Google authentication
+  useGoogleAuth();
   
   return (
     <QueryClientProvider client={queryClient}>

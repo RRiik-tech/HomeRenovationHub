@@ -20,10 +20,7 @@ export default function ContractorBidManagement() {
 
   const updateBidMutation = useMutation({
     mutationFn: async ({ bidId, status }: { bidId: number; status: string }) => {
-      return apiRequest(`/api/bids/${bidId}/status`, {
-        method: "PUT",
-        body: JSON.stringify({ status }),
-      });
+      return apiRequest("PUT", `/api/bids/${bidId}/status`, { status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/contractors/1/bids"] });
@@ -85,14 +82,14 @@ export default function ContractorBidManagement() {
     return colorMap[category] || "bg-gray-100 text-gray-800";
   };
 
-  const filteredBids = bids.filter((bid: any) => {
+  const filteredBids = (bids as any[]).filter((bid: any) => {
     if (activeTab === "all") return true;
     return bid.status === activeTab;
   });
 
-  const pendingBids = bids.filter((bid: any) => bid.status === 'pending');
-  const acceptedBids = bids.filter((bid: any) => bid.status === 'accepted');
-  const rejectedBids = bids.filter((bid: any) => bid.status === 'rejected');
+  const pendingBids = (bids as any[]).filter((bid: any) => bid.status === 'pending');
+  const acceptedBids = (bids as any[]).filter((bid: any) => bid.status === 'accepted');
+  const rejectedBids = (bids as any[]).filter((bid: any) => bid.status === 'rejected');
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -111,7 +108,7 @@ export default function ContractorBidManagement() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Bids</p>
-                <p className="text-2xl font-bold text-gray-900">{bids.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{(bids as any[]).length}</p>
               </div>
             </div>
           </CardContent>
@@ -168,7 +165,7 @@ export default function ContractorBidManagement() {
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all">All ({bids.length})</TabsTrigger>
+              <TabsTrigger value="all">All ({(bids as any[]).length})</TabsTrigger>
               <TabsTrigger value="pending">Pending ({pendingBids.length})</TabsTrigger>
               <TabsTrigger value="accepted">Accepted ({acceptedBids.length})</TabsTrigger>
               <TabsTrigger value="rejected">Rejected ({rejectedBids.length})</TabsTrigger>

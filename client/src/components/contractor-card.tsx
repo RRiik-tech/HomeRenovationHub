@@ -49,9 +49,9 @@ export default function ContractorCard({ contractor }: ContractorCardProps) {
             </h3>
             <div className="flex items-center">
               <div className="flex">
-                {renderStars(contractor.rating)}
+                {renderStars(contractor.rating || "0")}
               </div>
-              <span className="text-gray-500 text-sm ml-1">{contractor.rating}</span>
+              <span className="text-gray-500 text-sm ml-1">{contractor.rating || "0"}</span>
             </div>
           </div>
           

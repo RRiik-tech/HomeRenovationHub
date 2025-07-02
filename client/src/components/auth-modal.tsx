@@ -8,11 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useGoogleAuth } from "@/hooks/use-google-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
-import { signInWithGoogle, isFirebaseConfigured } from "@/lib/firebase";
-import { Chrome } from "lucide-react";
+import { Chrome, Loader2 } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -53,6 +53,7 @@ export default function AuthModal({ children }: AuthModalProps) {
 
   const { toast } = useToast();
   const { login } = useAuth();
+  const { signInWithGoogle, isLoading: googleLoading, isFirebaseConfigured } = useGoogleAuth();
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginData) => {
@@ -139,6 +140,20 @@ export default function AuthModal({ children }: AuthModalProps) {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    if (!isFirebaseConfigured) {
+      toast({
+        title: "Setup Required",
+        description: "Google authentication needs to be configured. Please set up Firebase credentials in your .env file.",
+        variant: "destructive",
+      });
+      return;
+    }
+    await signInWithGoogle();
+    // The modal will be closed automatically when the user is authenticated
+    // via the redirect result handling in the useGoogleAuth hook
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -152,30 +167,31 @@ export default function AuthModal({ children }: AuthModalProps) {
           </DialogDescription>
         </DialogHeader>
         
-        {/* Google Sign In Button - only show if Firebase is configured */}
-        {isFirebaseConfigured && (
-          <>
-            <Button 
-              onClick={signInWithGoogle}
-              variant="outline" 
-              className="w-full mb-4"
-            >
-              <Chrome className="mr-2 h-4 w-4" />
-              Continue with Google
-            </Button>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with email
-                </span>
-              </div>
-            </div>
-          </>
-        )}
+        {/* Google Sign In Button - show for demo purposes */}
+        <Button 
+          onClick={handleGoogleSignIn}
+          variant="outline" 
+          className="w-full mb-4"
+          disabled={googleLoading}
+        >
+          {googleLoading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Chrome className="mr-2 h-4 w-4" />
+          )}
+          {googleLoading ? "Signing in..." : "Continue with Google"}
+        </Button>
+        
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with email
+            </span>
+          </div>
+        </div>
         
         <Tabs defaultValue="login" className="w-full mt-4">
           <TabsList className="grid w-full grid-cols-2">
@@ -212,7 +228,14 @@ export default function AuthModal({ children }: AuthModalProps) {
                 className="w-full"
                 disabled={loginMutation.isPending}
               >
-                {loginMutation.isPending ? "Logging in..." : "Login"}
+                {loginMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
               </Button>
             </form>
           </TabsContent>
@@ -242,16 +265,6 @@ export default function AuthModal({ children }: AuthModalProps) {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="register-username">Username</Label>
-                <Input
-                  id="register-username"
-                  value={registerData.username}
-                  onChange={(e) => setRegisterData({ ...registerData, username: e.target.value })}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
                 <Label htmlFor="register-email">Email</Label>
                 <Input
                   id="register-email"
@@ -263,19 +276,13 @@ export default function AuthModal({ children }: AuthModalProps) {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="register-userType">I am a...</Label>
-                <Select 
-                  value={registerData.userType} 
-                  onValueChange={(value) => setRegisterData({ ...registerData, userType: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="homeowner">Homeowner</SelectItem>
-                    <SelectItem value="contractor">Contractor</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="register-username">Username</Label>
+                <Input
+                  id="register-username"
+                  value={registerData.username}
+                  onChange={(e) => setRegisterData({ ...registerData, username: e.target.value })}
+                  required
+                />
               </div>
               
               <div className="space-y-2">
@@ -300,12 +307,83 @@ export default function AuthModal({ children }: AuthModalProps) {
                 />
               </div>
               
+              <div className="space-y-2">
+                <Label htmlFor="register-phone">Phone</Label>
+                <Input
+                  id="register-phone"
+                  type="tel"
+                  value={registerData.phone ?? ""}
+                  onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="register-userType">User Type</Label>
+                <Select
+                  value={registerData.userType}
+                  onValueChange={(value) => setRegisterData({ ...registerData, userType: value as "homeowner" | "contractor" })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select user type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="homeowner">Homeowner</SelectItem>
+                    <SelectItem value="contractor">Contractor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="register-address">Address</Label>
+                <Input
+                  id="register-address"
+                  value={registerData.address ?? ""}
+                  onChange={(e) => setRegisterData({ ...registerData, address: e.target.value })}
+                />
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="register-city">City</Label>
+                  <Input
+                    id="register-city"
+                    value={registerData.city ?? ""}
+                    onChange={(e) => setRegisterData({ ...registerData, city: e.target.value })}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="register-state">State</Label>
+                  <Input
+                    id="register-state"
+                    value={registerData.state ?? ""}
+                    onChange={(e) => setRegisterData({ ...registerData, state: e.target.value })}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="register-zipCode">ZIP Code</Label>
+                  <Input
+                    id="register-zipCode"
+                    value={registerData.zipCode ?? ""}
+                    onChange={(e) => setRegisterData({ ...registerData, zipCode: e.target.value })}
+                  />
+                </div>
+              </div>
+              
               <Button 
                 type="submit" 
                 className="w-full"
                 disabled={registerMutation.isPending}
               >
-                {registerMutation.isPending ? "Creating Account..." : "Create Account"}
+                {registerMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
               </Button>
             </form>
           </TabsContent>
