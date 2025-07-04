@@ -3,14 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Menu, X, Home, Search, PlusCircle, MessageSquare, User, Briefcase, LogOut, BarChart3, Star, CreditCard, FileText, Calendar, Bell, Store } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useGoogleAuth } from "@/hooks/use-google-auth";
 import AuthModal from "@/components/auth-modal";
 
 export default function Navigation() {
   const [location] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
+  // Initialize Google Auth (safely within component context)
+  useGoogleAuth();
 
   const isActive = (path: string) => location === path;
 
