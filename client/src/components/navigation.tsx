@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Menu, X, Home, Search, PlusCircle, MessageSquare, User, Briefcase, LogOut } from "lucide-react";
+import { Menu, X, Home, Search, PlusCircle, MessageSquare, User, Briefcase, LogOut, BarChart3, Star, CreditCard, FileText, Calendar, Bell, Store } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import AuthModal from "@/components/auth-modal";
@@ -67,6 +67,15 @@ export default function Navigation() {
                 Messages
               </span>
             </Link>
+            <Link href="/marketplace">
+              <span className={`text-sm font-medium cursor-pointer transition-colors ${
+                isActive("/marketplace") 
+                  ? "text-primary border-b-2 border-primary pb-1" 
+                  : "text-gray-700 hover:text-primary"
+              }`}>
+                Marketplace
+              </span>
+            </Link>
           </div>
 
           {/* Desktop Auth Section */}
@@ -116,6 +125,49 @@ export default function Navigation() {
                     <Link href="/messaging" className="w-full cursor-pointer">
                       <MessageSquare className="mr-2 h-4 w-4" />
                       Messages
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/notifications" className="w-full cursor-pointer">
+                      <Bell className="mr-2 h-4 w-4" />
+                      Notifications
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/analytics" className="w-full cursor-pointer">
+                      <BarChart3 className="mr-2 h-4 w-4" />
+                      Analytics
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/reviews" className="w-full cursor-pointer">
+                      <Star className="mr-2 h-4 w-4" />
+                      Reviews
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/payments" className="w-full cursor-pointer">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Payments
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/documents" className="w-full cursor-pointer">
+                      <FileText className="mr-2 h-4 w-4" />
+                      Documents
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/calendar" className="w-full cursor-pointer">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Calendar
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/marketplace" className="w-full cursor-pointer">
+                      <Store className="mr-2 h-4 w-4" />
+                      Marketplace
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
