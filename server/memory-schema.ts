@@ -60,11 +60,63 @@ export const insertMessageSchema = z.object({
 
 export const insertReviewSchema = z.object({
   projectId: z.number(),
-  reviewerId: z.number(),
   contractorId: z.number(),
+  reviewerId: z.number(),
   rating: z.number().min(1).max(5),
-  comment: z.string(),
-  categories: z.array(z.string()), // quality, communication, timeliness, etc.
+  title: z.string().min(1).max(100),
+  comment: z.string().min(10).max(1000),
+  photos: z.array(z.string()).optional(),
+  categories: z.object({
+    quality: z.number().min(1).max(5),
+    timeliness: z.number().min(1).max(5),
+    communication: z.number().min(1).max(5),
+    professionalism: z.number().min(1).max(5),
+    value: z.number().min(1).max(5),
+  }),
+  wouldRecommend: z.boolean(),
+  isVerified: z.boolean().default(false),
+});
+
+export const insertNotificationSchema = z.object({
+  userId: z.number(),
+  type: z.enum(['bid_received', 'bid_accepted', 'bid_rejected', 'project_update', 'message_received', 'review_received', 'payment_received']),
+  title: z.string(),
+  message: z.string(),
+  relatedId: z.number().optional(),
+  relatedType: z.enum(['project', 'bid', 'message', 'review', 'payment']).optional(),
+  isRead: z.boolean().default(false),
+});
+
+export const insertDocumentSchema = z.object({
+  projectId: z.number(),
+  uploadedBy: z.number(),
+  name: z.string(),
+  type: z.enum(['contract', 'permit', 'invoice', 'receipt', 'photo', 'other']),
+  fileUrl: z.string(),
+  fileSize: z.number(),
+  mimeType: z.string(),
+  description: z.string().optional(),
+});
+
+export const insertPaymentSchema = z.object({
+  projectId: z.number(),
+  fromUserId: z.number(),
+  toUserId: z.number(),
+  amount: z.number(),
+  type: z.enum(['milestone', 'deposit', 'final', 'refund']),
+  status: z.enum(['pending', 'processing', 'completed', 'failed', 'refunded']),
+  description: z.string(),
+  milestoneId: z.number().optional(),
+});
+
+export const insertMilestoneSchema = z.object({
+  projectId: z.number(),
+  title: z.string(),
+  description: z.string(),
+  amount: z.number(),
+  dueDate: z.string(),
+  status: z.enum(['pending', 'in_progress', 'completed', 'overdue']).default('pending'),
+  order: z.number(),
 });
 
 // Type definitions
@@ -141,12 +193,75 @@ export interface Message {
 export interface Review {
   id: number;
   projectId: number;
-  reviewerId: number;
   contractorId: number;
+  reviewerId: number;
   rating: number;
+  title: string;
   comment: string;
-  categories: string[];
+  photos: string[];
+  categories: {
+    quality: number;
+    timeliness: number;
+    communication: number;
+    professionalism: number;
+    value: number;
+  };
+  wouldRecommend: boolean;
+  isVerified: boolean;
   createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Notification {
+  id: number;
+  userId: number;
+  type: 'bid_received' | 'bid_accepted' | 'bid_rejected' | 'project_update' | 'message_received' | 'review_received' | 'payment_received';
+  title: string;
+  message: string;
+  relatedId?: number;
+  relatedType?: 'project' | 'bid' | 'message' | 'review' | 'payment';
+  isRead: boolean;
+  createdAt: Date;
+}
+
+export interface Document {
+  id: number;
+  projectId: number;
+  uploadedBy: number;
+  name: string;
+  type: 'contract' | 'permit' | 'invoice' | 'receipt' | 'photo' | 'other';
+  fileUrl: string;
+  fileSize: number;
+  mimeType: string;
+  description?: string;
+  createdAt: Date;
+}
+
+export interface Payment {
+  id: number;
+  projectId: number;
+  fromUserId: number;
+  toUserId: number;
+  amount: number;
+  type: 'milestone' | 'deposit' | 'final' | 'refund';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
+  description: string;
+  milestoneId?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Milestone {
+  id: number;
+  projectId: number;
+  title: string;
+  description: string;
+  amount: number;
+  dueDate: Date;
+  status: 'pending' | 'in_progress' | 'completed' | 'overdue';
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -154,4 +269,8 @@ export type InsertContractor = z.infer<typeof insertContractorSchema>;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type InsertBid = z.infer<typeof insertBidSchema>;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
-export type InsertReview = z.infer<typeof insertReviewSchema>; 
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type InsertMilestone = z.infer<typeof insertMilestoneSchema>; 

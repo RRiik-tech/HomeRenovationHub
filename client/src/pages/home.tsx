@@ -1,194 +1,242 @@
 import HeroSection from "@/components/hero-section";
-import ProjectCategories from "@/components/project-categories";
-import ProjectCard from "@/components/project-card";
-import ContractorCard from "@/components/contractor-card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, Star, Users, Clock, Shield, Wrench } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import AuthModal from "@/components/auth-modal";
 import { Link } from "wouter";
-import { CheckCircle, Users, Clock } from "lucide-react";
 
 export default function Home() {
-  const { data: projects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ["/api/projects"],
-  });
+  const { isAuthenticated, user } = useAuth();
 
-  const { data: contractors = [], isLoading: contractorsLoading } = useQuery({
-    queryKey: ["/api/contractors"],
-  });
+  const features = [
+    {
+      icon: <Users className="h-8 w-8 text-blue-600" />,
+      title: "Verified Contractors",
+      description: "All contractors are background-checked and verified for quality and reliability."
+    },
+    {
+      icon: <Star className="h-8 w-8 text-yellow-600" />,
+      title: "Competitive Bidding",
+      description: "Get multiple quotes from qualified contractors to ensure the best price."
+    },
+    {
+      icon: <Shield className="h-8 w-8 text-green-600" />,
+      title: "Secure Payments",
+      description: "Protected payment system ensures your money is safe until work is completed."
+    },
+    {
+      icon: <Clock className="h-8 w-8 text-purple-600" />,
+      title: "Project Management",
+      description: "Track your project progress with real-time updates and messaging."
+    }
+  ];
 
-  const recentProjects = projects.slice(0, 3);
-  const featuredContractors = contractors.slice(0, 4);
+  const testimonials = [
+    {
+      name: "Sarah Johnson",
+      role: "Homeowner",
+      content: "Found an amazing contractor for my kitchen remodel. The bidding process was transparent and saved me thousands!",
+      rating: 5
+    },
+    {
+      name: "Mike Chen",
+      role: "Contractor",
+      content: "HomeConnect Pro has helped me grow my business significantly. Great platform to connect with quality clients.",
+      rating: 5
+    }
+  ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-50">
       <HeroSection />
-      <ProjectCategories />
       
-      {/* Recent Projects Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-12">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Recent Projects</h2>
-              <p className="text-xl text-gray-600">See what homeowners in your area are working on</p>
+      {/* Welcome Message for Authenticated Users */}
+      {isAuthenticated && user && (
+        <section className="py-12 bg-blue-50 border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                Welcome back, {user.firstName}! 👋
+              </h2>
+              <p className="text-xl text-gray-600 mb-8">
+                Ready to {user.userType === 'contractor' ? 'find new projects' : 'start your next renovation project'}?
+              </p>
+              <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                {user.userType === 'contractor' ? (
+                  <>
+                    <Link href="/find-projects">
+                      <Button size="lg" className="button-gradient text-white">
+                        Browse Projects
+                      </Button>
+                    </Link>
+                    <Link href="/contractor-dashboard">
+                      <Button size="lg" variant="outline">
+                        View Dashboard
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/post-project">
+                      <Button size="lg" className="button-gradient text-white">
+                        Post a Project
+                      </Button>
+                    </Link>
+                    <Link href="/find-contractors">
+                      <Button size="lg" variant="outline">
+                        Find Contractors
+                      </Button>
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
-            <Link href="/find-contractors">
-              <Button className="bg-primary text-white hover:bg-primary/90">
-                View All Projects
-              </Button>
-            </Link>
           </div>
+        </section>
+      )}
 
-          {projectsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <div className="h-48 bg-gray-200"></div>
-                  <CardContent className="p-6">
-                    <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                    <div className="h-6 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                    <div className="h-4 bg-gray-200 rounded"></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {recentProjects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Featured Contractors Section */}
+      {/* Features Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Contractors</h2>
-            <p className="text-xl text-gray-600">Connect with top-rated professionals in your area</p>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Why Choose HomeConnect Pro?
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Connect with trusted professionals, manage your projects seamlessly, and get the best value for your home renovation needs.
+            </p>
           </div>
 
-          {contractorsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <div className="h-48 bg-gray-200"></div>
-                  <CardContent className="p-6">
-                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                    <div className="h-4 bg-gray-200 rounded"></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {featuredContractors.map((contractor) => (
-                <ContractorCard key={contractor.id} contractor={contractor} />
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <Card key={index} className="text-center hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex justify-center mb-4">
+                    {feature.icon}
+                  </div>
+                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-600">
+                    {feature.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* How It Works Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">How It Works</h2>
-            <p className="text-xl text-gray-600">Get your project done in 3 simple steps</p>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              How It Works
+            </h2>
+            <p className="text-xl text-gray-600">
+              Get your project done in 3 simple steps
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-white">1</span>
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-blue-600">1</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Post Your Project</h3>
+              <h3 className="text-xl font-semibold mb-2">Post Your Project</h3>
               <p className="text-gray-600">
-                Describe your project, upload photos, and set your budget. Our platform will match you with qualified contractors.
+                Describe your renovation project and get matched with qualified contractors in your area.
               </p>
             </div>
 
             <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-white">2</span>
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-green-600">2</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Review Bids</h3>
+              <h3 className="text-xl font-semibold mb-2">Compare Bids</h3>
               <p className="text-gray-600">
-                Receive competitive bids from verified contractors. Compare proposals, portfolios, and reviews to make the best choice.
+                Receive competitive quotes from verified contractors and choose the best fit for your project.
               </p>
             </div>
 
             <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-2xl font-bold text-white">3</span>
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-purple-600">3</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Get It Done</h3>
+              <h3 className="text-xl font-semibold mb-2">Get It Done</h3>
               <p className="text-gray-600">
-                Hire your contractor and track progress through our platform. Pay securely when the job is completed to your satisfaction.
+                Work with your chosen contractor using our secure platform and project management tools.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-primary">
+      {/* Testimonials Section */}
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center text-white">
-            <div>
-              <div className="flex items-center justify-center mb-4">
-                <CheckCircle className="w-12 h-12" />
-              </div>
-              <div className="text-4xl font-bold mb-2">500+</div>
-              <div className="text-blue-100">Projects Completed</div>
-            </div>
-            
-            <div>
-              <div className="flex items-center justify-center mb-4">
-                <Users className="w-12 h-12" />
-              </div>
-              <div className="text-4xl font-bold mb-2">150+</div>
-              <div className="text-blue-100">Verified Contractors</div>
-            </div>
-            
-            <div>
-              <div className="flex items-center justify-center mb-4">
-                <Clock className="w-12 h-12" />
-              </div>
-              <div className="text-4xl font-bold mb-2">24hr</div>
-              <div className="text-blue-100">Average Response Time</div>
-            </div>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              What Our Users Say
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="hover:shadow-lg transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex items-center mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                    ))}
+                  </div>
+                  <p className="text-gray-600 mb-4 italic">
+                    "{testimonial.content}"
+                  </p>
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-sm font-medium text-gray-600">
+                        {testimonial.name.split(' ').map(n => n[0]).join('')}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">{testimonial.name}</p>
+                      <p className="text-sm text-gray-600">{testimonial.role}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Ready to Start Your Project?</h2>
-          <p className="text-xl text-gray-600 mb-8">
-            Join thousands of homeowners who have found their perfect contractor through HomeConnect Pro
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/post-project">
-              <Button size="lg" className="button-gradient text-white font-semibold hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                Post Your Project
+      {!isAuthenticated && (
+        <section className="py-16 bg-blue-600">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              Ready to Get Started?
+            </h2>
+            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+              Join thousands of homeowners and contractors who trust HomeConnect Pro for their renovation projects.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+              <AuthModal>
+                <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 font-semibold">
+                  Sign Up Now - It's Free!
+                </Button>
+              </AuthModal>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600">
+                Learn More
               </Button>
-            </Link>
-            <Link href="/find-contractors">
-              <Button size="lg" variant="outline">
-                Browse Contractors
-              </Button>
-            </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

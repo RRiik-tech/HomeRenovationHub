@@ -10,11 +10,19 @@ export function useAuth() {
     return unsubscribe;
   }, []);
 
+  const logout = async () => {
+    try {
+      await authManager.logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   return {
     user: state.user,
     isAuthenticated: state.isAuthenticated,
     login: (user: User) => authManager.login(user),
-    logout: () => authManager.logout(),
+    logout,
     getCurrentUser: () => authManager.getCurrentUser(),
   };
 }

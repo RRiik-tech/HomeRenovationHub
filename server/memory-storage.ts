@@ -1,10 +1,24 @@
 import {
-  type User, type InsertUser,
-  type Contractor, type InsertContractor,
-  type Project, type InsertProject,
-  type Bid, type InsertBid,
-  type Message, type InsertMessage,
-  type Review, type InsertReview
+  User,
+  Contractor,
+  Project,
+  Bid,
+  Message,
+  Review,
+  Notification,
+  Document,
+  Payment,
+  Milestone,
+  InsertUser,
+  InsertContractor,
+  InsertProject,
+  InsertBid,
+  InsertMessage,
+  InsertReview,
+  InsertNotification,
+  InsertDocument,
+  InsertPayment,
+  InsertMilestone
 } from './memory-schema';
 
 export class MemoryStorage {
@@ -14,12 +28,20 @@ export class MemoryStorage {
   private bids: Bid[] = [];
   private messages: Message[] = [];
   private reviews: Review[] = [];
+  private notifications: Notification[] = [];
+  private documents: Document[] = [];
+  private payments: Payment[] = [];
+  private milestones: Milestone[] = [];
   private nextUserId = 1;
   private nextContractorId = 1;
   private nextProjectId = 1;
   private nextBidId = 1;
   private nextMessageId = 1;
   private nextReviewId = 1;
+  private nextNotificationId = 1;
+  private nextDocumentId = 1;
+  private nextPaymentId = 1;
+  private nextMilestoneId = 1;
 
   constructor() {
     this.initializeSampleData();
@@ -371,48 +393,170 @@ export class MemoryStorage {
   }
 
   // Review operations
-  async getReviewsByContractor(contractorId: number): Promise<Review[]> {
-    return this.reviews
-      .filter(review => review.contractorId === contractorId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  }
-
-  async getReviewsByProject(projectId: number): Promise<Review[]> {
-    return this.reviews
-      .filter(review => review.projectId === projectId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  async createReview(insertReview: InsertReview): Promise<Review> {
+    const review: Review = {
+      id: this.nextReviewId++,
+      ...insertReview,
+      photos: insertReview.photos || [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.reviews.push(review);
+    return review;
   }
 
   async getReview(id: number): Promise<Review | undefined> {
     return this.reviews.find(review => review.id === id);
   }
 
-  private async updateContractorRating(contractorId: number): Promise<void> {
-    const contractorReviews = this.reviews.filter(review => review.contractorId === contractorId);
-    
-    if (contractorReviews.length > 0) {
-      const totalRating = contractorReviews.reduce((sum, review) => sum + review.rating, 0);
-      const averageRating = totalRating / contractorReviews.length;
-      
-      const contractor = this.contractors.find(c => c.id === contractorId);
-      if (contractor) {
-        contractor.rating = averageRating.toFixed(2);
-        contractor.reviewCount = contractorReviews.length;
-      }
-    }
+  async getReviewsByProject(projectId: number): Promise<Review[]> {
+    return this.reviews.filter(review => review.projectId === projectId);
   }
 
-  async createReview(insertReview: InsertReview): Promise<Review> {
-    const review: Review = {
-      id: this.nextReviewId++,
-      ...insertReview,
+  async getReviewsByContractor(contractorId: number): Promise<Review[]> {
+    return this.reviews.filter(review => review.contractorId === contractorId);
+  }
+
+  async getReviewsByReviewer(reviewerId: number): Promise<Review[]> {
+    return this.reviews.filter(review => review.reviewerId === reviewerId);
+  }
+
+  async updateReview(id: number, updates: Partial<Review>): Promise<Review | undefined> {
+    const reviewIndex = this.reviews.findIndex(review => review.id === id);
+    if (reviewIndex === -1) return undefined;
+    
+    this.reviews[reviewIndex] = { 
+      ...this.reviews[reviewIndex], 
+      ...updates, 
+      updatedAt: new Date() 
+    };
+    return this.reviews[reviewIndex];
+  }
+
+  // Notification operations
+  async createNotification(insertNotification: InsertNotification): Promise<Notification> {
+    const notification: Notification = {
+      id: this.nextNotificationId++,
+      ...insertNotification,
       createdAt: new Date(),
     };
-    this.reviews.push(review);
-    
-    // Update contractor rating
-    await this.updateContractorRating(insertReview.contractorId);
-    
-    return review;
+    this.notifications.push(notification);
+    return notification;
+  }
+
+  async getNotificationsByUser(userId: number): Promise<Notification[]> {
+    return this.notifications
+      .filter(notification => notification.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async markNotificationAsRead(id: number): Promise<boolean> {
+    const notification = this.notifications.find(n => n.id === id);
+    if (notification) {
+      notification.isRead = true;
+      return true;
+    }
+    return false;
+  }
+
+  async getUnreadNotificationCount(userId: number): Promise<number> {
+    return this.notifications.filter(n => n.userId === userId && !n.isRead).length;
+  }
+
+  // Document operations
+  async createDocument(insertDocument: InsertDocument): Promise<Document> {
+    const document: Document = {
+      id: this.nextDocumentId++,
+      ...insertDocument,
+      createdAt: new Date(),
+    };
+    this.documents.push(document);
+    return document;
+  }
+
+  async getDocumentsByProject(projectId: number): Promise<Document[]> {
+    return this.documents.filter(doc => doc.projectId === projectId);
+  }
+
+  async getDocument(id: number): Promise<Document | undefined> {
+    return this.documents.find(doc => doc.id === id);
+  }
+
+  async deleteDocument(id: number): Promise<boolean> {
+    const index = this.documents.findIndex(doc => doc.id === id);
+    if (index !== -1) {
+      this.documents.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+
+  // Payment operations
+  async createPayment(insertPayment: InsertPayment): Promise<Payment> {
+    const payment: Payment = {
+      id: this.nextPaymentId++,
+      ...insertPayment,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.payments.push(payment);
+    return payment;
+  }
+
+  async getPaymentsByProject(projectId: number): Promise<Payment[]> {
+    return this.payments.filter(payment => payment.projectId === projectId);
+  }
+
+  async getPaymentsByUser(userId: number): Promise<Payment[]> {
+    return this.payments.filter(payment => 
+      payment.fromUserId === userId || payment.toUserId === userId
+    );
+  }
+
+  async updatePaymentStatus(id: number, status: Payment['status']): Promise<Payment | undefined> {
+    const payment = this.payments.find(p => p.id === id);
+    if (payment) {
+      payment.status = status;
+      payment.updatedAt = new Date();
+      return payment;
+    }
+    return undefined;
+  }
+
+  // Milestone operations
+  async createMilestone(insertMilestone: InsertMilestone): Promise<Milestone> {
+    const milestone: Milestone = {
+      id: this.nextMilestoneId++,
+      ...insertMilestone,
+      dueDate: new Date(insertMilestone.dueDate),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.milestones.push(milestone);
+    return milestone;
+  }
+
+  async getMilestonesByProject(projectId: number): Promise<Milestone[]> {
+    return this.milestones
+      .filter(milestone => milestone.projectId === projectId)
+      .sort((a, b) => a.order - b.order);
+  }
+
+  async updateMilestoneStatus(id: number, status: Milestone['status']): Promise<Milestone | undefined> {
+    const milestone = this.milestones.find(m => m.id === id);
+    if (milestone) {
+      milestone.status = status;
+      milestone.updatedAt = new Date();
+      return milestone;
+    }
+    return undefined;
+  }
+
+  async getMilestone(id: number): Promise<Milestone | undefined> {
+    return this.milestones.find(milestone => milestone.id === id);
+  }
+
+  private updateContractorRating(contractorId: number): void {
+    // Implementation of updateContractorRating method
   }
 } 

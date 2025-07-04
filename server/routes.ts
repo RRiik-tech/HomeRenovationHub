@@ -2,16 +2,28 @@ import type { Express, Request, Response, NextFunction } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertContractorSchema, insertProjectSchema, insertBidSchema, insertMessageSchema, insertReviewSchema } from "./memory-schema";
+import { 
+  insertUserSchema, 
+  insertContractorSchema, 
+  insertProjectSchema, 
+  insertBidSchema, 
+  insertMessageSchema, 
+  insertReviewSchema,
+  insertNotificationSchema,
+  insertDocumentSchema,
+  insertPaymentSchema,
+  insertMilestoneSchema
+} from "./memory-schema";
 import multer, { type Multer } from "multer";
 import path from "path";
 import { AIAnalysisService } from "./ai-analysis";
 import {
-  createUser, getUser, getUserByEmail,
+  createUser, getUser, getUserByEmail, updateUser,
   createContractor, getContractor, getContractors, getContractorByUserId, getContractorsByCategory, getContractorsByLocation,
   createProject, getProject, getProjects, getProjectsByHomeowner, updateProjectStatus,
   createBid, getBid, getBidsByProject, getBidsByContractor, updateBidStatus, getBids,
-  createMessage, getMessagesByProject, getConversations
+  createMessage, getMessagesByProject, getConversations,
+  createReview, getReviewsByProject, getReviewsByContractor
 } from "./firebase-storage";
 
 // Extend Express Request type for file uploads
@@ -269,17 +281,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
+      const {
+        companyName,
+        licenseNumber,
+        insuranceNumber,
+        specialties,
+        experienceYears,
+        description,
+        ...userData
+      } = req.body;
+      
+      // Validate user data
+      const validatedUserData = insertUserSchema.parse(userData);
       
       // Check if user already exists
-      const existingUser = await storage.getUserByEmail(userData.email);
+      const existingUser = await storage.getUserByEmail(validatedUserData.email);
       if (existingUser) {
         return res.status(400).json({ message: "User already exists" });
       }
       
-      const user = await storage.createUser(userData);
-      res.json({ user, message: "User registered successfully" });
+      // Create user
+      const user = await storage.createUser(validatedUserData);
+      
+      // If user is a contractor, create contractor profile
+      if (validatedUserData.userType === "contractor") {
+        const contractorData = {
+          userId: user.id,
+          companyName: companyName || "",
+          licenseNumber: licenseNumber || "",
+          insuranceNumber: insuranceNumber || "",
+          specialties: specialties || [],
+          experienceYears: experienceYears || 0,
+          description: description || "",
+          portfolio: [],
+          rating: "0.00",
+          reviewCount: 0,
+          isVerified: false,
+        };
+        
+        const validatedContractorData = insertContractorSchema.parse(contractorData);
+        const contractor = await createContractor(validatedContractorData);
+        
+        res.json({ 
+          user: { ...user, contractor }, 
+          message: "Contractor registered successfully"
+        });
+      } else {
+        res.json({ 
+          user, 
+          message: "User registered successfully"
+        });
+      }
     } catch (error: any) {
+      console.error("Registration error:", error);
       res.status(400).json({ message: error.message });
     }
   });
@@ -359,7 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/contractors", async (req, res) => {
     try {
       const contractorData = insertContractorSchema.parse(req.body);
-      const contractor = await storage.createContractor(contractorData);
+      const contractor = await createContractor(contractorData);
       res.json(contractor);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -419,48 +473,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const reviewData = insertReviewSchema.parse(req.body);
       const review = await storage.createReview(reviewData);
-      
-      // Get reviewer and contractor details
-      const reviewer = await storage.getUser(review.reviewerId);
-      const contractor = await storage.getContractor(review.contractorId);
-      
-      res.json({
-        ...review,
-        reviewer,
-        contractor
-      });
+      res.json(review);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
   });
 
-  app.get("/api/contractors/:id/reviews", async (req, res) => {
+  app.get("/api/projects/:projectId/reviews", async (req, res) => {
     try {
-      const contractorId = parseInt(req.params.id);
-      const reviews = await storage.getReviewsByContractor(contractorId);
-      
-      // Get reviewer details for each review
-      const reviewsWithUsers = await Promise.all(
-        reviews.map(async (review) => {
-          const reviewer = await storage.getUser(review.reviewerId);
-          const project = await storage.getProject(review.projectId);
-          return {
-            ...review,
-            reviewer,
-            project
-          };
-        })
-      );
-      
-      res.json(reviewsWithUsers);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.get("/api/projects/:id/reviews", async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id);
+      const projectId = parseInt(req.params.projectId);
       const reviews = await storage.getReviewsByProject(projectId);
       
       // Get reviewer and contractor details for each review
@@ -477,6 +498,198 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       res.json(reviewsWithDetails);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/contractors/:contractorId/reviews", async (req, res) => {
+    try {
+      const contractorId = parseInt(req.params.contractorId);
+      const reviews = await storage.getReviewsByContractor(contractorId);
+      
+      const reviewsWithDetails = await Promise.all(
+        reviews.map(async (review) => {
+          const reviewer = await storage.getUser(review.reviewerId);
+          const project = await storage.getProject(review.projectId);
+          return {
+            ...review,
+            reviewer,
+            project
+          };
+        })
+      );
+      
+      res.json(reviewsWithDetails);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Notification routes
+  app.post("/api/notifications", async (req, res) => {
+    try {
+      const notificationData = insertNotificationSchema.parse(req.body);
+      const notification = await storage.createNotification(notificationData);
+      res.json(notification);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/users/:userId/notifications", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const notifications = await storage.getNotificationsByUser(userId);
+      res.json(notifications);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/notifications/:id/read", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.markNotificationAsRead(id);
+      res.json({ message: "Notification marked as read" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/users/:userId/notifications/unread-count", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const count = await storage.getUnreadNotificationCount(userId);
+      res.json({ count });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Document routes
+  app.post("/api/documents", upload.single('file'), async (req, res) => {
+    try {
+      const documentData = {
+        projectId: parseInt(req.body.projectId),
+        uploadedBy: parseInt(req.body.uploadedBy),
+        name: req.body.name,
+        type: req.body.type,
+        fileUrl: req.file ? `/api/uploads/${req.file.filename}` : '',
+        fileSize: req.file ? req.file.size : 0,
+        mimeType: req.file ? req.file.mimetype : '',
+        description: req.body.description
+      };
+      
+      const validatedData = insertDocumentSchema.parse(documentData);
+      const document = await storage.createDocument(validatedData);
+      res.json(document);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/projects/:projectId/documents", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const documents = await storage.getDocumentsByProject(projectId);
+      res.json(documents);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/documents/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteDocument(id);
+      if (success) {
+        res.json({ message: "Document deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Document not found" });
+      }
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Payment routes
+  app.post("/api/payments", async (req, res) => {
+    try {
+      const paymentData = insertPaymentSchema.parse(req.body);
+      const payment = await storage.createPayment(paymentData);
+      res.json(payment);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/projects/:projectId/payments", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const payments = await storage.getPaymentsByProject(projectId);
+      res.json(payments);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/users/:userId/payments", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const payments = await storage.getPaymentsByUser(userId);
+      res.json(payments);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/payments/:id/status", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      const payment = await storage.updatePaymentStatus(id, status);
+      if (payment) {
+        res.json(payment);
+      } else {
+        res.status(404).json({ message: "Payment not found" });
+      }
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Milestone routes
+  app.post("/api/milestones", async (req, res) => {
+    try {
+      const milestoneData = insertMilestoneSchema.parse(req.body);
+      const milestone = await storage.createMilestone(milestoneData);
+      res.json(milestone);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/projects/:projectId/milestones", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const milestones = await storage.getMilestonesByProject(projectId);
+      res.json(milestones);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/milestones/:id/status", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      const milestone = await storage.updateMilestoneStatus(id, status);
+      if (milestone) {
+        res.json(milestone);
+      } else {
+        res.status(404).json({ message: "Milestone not found" });
+      }
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
