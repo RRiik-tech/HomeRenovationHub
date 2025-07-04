@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Star, Users, Clock, Shield, Wrench } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import AuthModal from "@/components/auth-modal";
+import { FirebaseTest } from "@/components/firebase-test";
 import { Link } from "wouter";
 
 export default function Home() {
@@ -52,6 +53,15 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       <HeroSection />
       
+      {/* Firebase Test Section - Only show in development */}
+      {import.meta.env.DEV && (
+        <section className="py-8 bg-yellow-50 border-b">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <FirebaseTest />
+          </div>
+        </section>
+      )}
+
       {/* Welcome Message for Authenticated Users */}
       {isAuthenticated && user && (
         <section className="py-12 bg-blue-50 border-b">
