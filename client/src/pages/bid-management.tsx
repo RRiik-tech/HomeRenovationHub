@@ -88,9 +88,9 @@ export default function BidManagement() {
     return colorMap[category] || "bg-gray-100 text-gray-800";
   };
 
-  const pendingBids = bids.filter((bid: any) => bid.status === 'pending');
-  const acceptedBids = bids.filter((bid: any) => bid.status === 'accepted');
-  const rejectedBids = bids.filter((bid: any) => bid.status === 'rejected');
+  const pendingBids = (bids as any[]).filter((bid: any) => bid.status === 'pending');
+  const acceptedBids = (bids as any[]).filter((bid: any) => bid.status === 'accepted');
+  const rejectedBids = (bids as any[]).filter((bid: any) => bid.status === 'rejected');
 
   if (projectLoading) {
     return (
@@ -138,13 +138,13 @@ export default function BidManagement() {
         <div className="hero-gradient px-6 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-white mb-2">{project.title}</h1>
+              <h1 className="text-2xl font-bold text-white mb-2">{(project as any).title}</h1>
               <p className="text-blue-100">
-                Posted {timeAgo(project.createdAt)} • {bids.length} bid{bids.length !== 1 ? 's' : ''} received
+                Posted {timeAgo((project as any).createdAt)} • {(bids as any[]).length} bid{(bids as any[]).length !== 1 ? 's' : ''} received
               </p>
             </div>
-            <Badge className={`${getCategoryColor(project.category)} border-0`}>
-              {project.category}
+            <Badge className={`${getCategoryColor((project as any).category)} border-0`}>
+              {(project as any).category}
             </Badge>
           </div>
         </div>
@@ -156,7 +156,7 @@ export default function BidManagement() {
               <DollarSign className="w-8 h-8 text-green-600" />
               <div>
                 <p className="text-sm text-gray-500">Budget</p>
-                <p className="font-semibold text-lg">{project.budget}</p>
+                <p className="font-semibold text-lg">{(project as any).budget}</p>
               </div>
             </div>
             
@@ -164,7 +164,7 @@ export default function BidManagement() {
               <Clock className="w-8 h-8 text-blue-600" />
               <div>
                 <p className="text-sm text-gray-500">Timeline</p>
-                <p className="font-semibold text-lg">{project.timeline}</p>
+                <p className="font-semibold text-lg">{(project as any).timeline}</p>
               </div>
             </div>
             
@@ -172,7 +172,7 @@ export default function BidManagement() {
               <User className="w-8 h-8 text-purple-600" />
               <div>
                 <p className="text-sm text-gray-500">Total Bids</p>
-                <p className="font-semibold text-lg">{bids.length}</p>
+                <p className="font-semibold text-lg">{(bids as any[]).length}</p>
               </div>
             </div>
             
@@ -264,7 +264,7 @@ export default function BidManagement() {
         )}
 
         {/* No Bids State */}
-        {bids.length === 0 && !bidsLoading && (
+        {(bids as any[]).length === 0 && !bidsLoading && (
           <Card>
             <CardContent className="text-center py-12">
               <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">

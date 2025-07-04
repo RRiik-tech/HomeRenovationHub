@@ -3,11 +3,14 @@ import { useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, DollarSign, User, MessageCircle } from "lucide-react";
+import { MapPin, Calendar, DollarSign, User, MessageCircle, Brain } from "lucide-react";
 import BidCard from "@/components/bid-card";
+import { AIAnalysis } from "@/components/ai-analysis";
+import { AIDashboard } from "@/components/ai-dashboard";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
+import type { ProjectWithHomeowner } from "@/types/api";
 
 export default function ProjectDetails() {
   const [, params] = useRoute("/projects/:id");
@@ -15,12 +18,12 @@ export default function ProjectDetails() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: project, isLoading: projectLoading } = useQuery({
+  const { data: project, isLoading: projectLoading } = useQuery<ProjectWithHomeowner>({
     queryKey: [`/api/projects/${projectId}`],
     enabled: !!projectId,
   });
 
-  const { data: bids = [], isLoading: bidsLoading } = useQuery({
+  const { data: bids = [], isLoading: bidsLoading } = useQuery<any[]>({
     queryKey: [`/api/projects/${projectId}/bids`],
     enabled: !!projectId,
   });
@@ -56,71 +59,6 @@ export default function ProjectDetails() {
     if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
     return `${Math.ceil(diffDays / 30)} months ago`;
   };
-
-  const submitBidMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("/api/bids", {
-        method: "POST",
-        body: JSON.stringify({
-          projectId: parseInt(id!),
-          contractorId: 1, // Default contractor for demo
-          amount: bidAmount,
-          timeline: bidTimeline,
-          proposal: bidProposal,
-        }),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "bids"] });
-      setBidAmount("");
-      setBidTimeline("");
-      setBidProposal("");
-      setShowBidForm(false);
-      toast({
-        title: "Success",
-        description: "Bid submitted successfully!",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to submit bid",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleAcceptBid = useMutation({
-    mutationFn: async (bidId: number) => {
-      return apiRequest(`/api/bids/${bidId}/status`, {
-        method: "PUT",
-        body: JSON.stringify({ status: "accepted" }),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "bids"] });
-      toast({
-        title: "Success",
-        description: "Bid accepted successfully!",
-      });
-    },
-  });
-
-  const handleRejectBid = useMutation({
-    mutationFn: async (bidId: number) => {
-      return apiRequest(`/api/bids/${bidId}/status`, {
-        method: "PUT",
-        body: JSON.stringify({ status: "rejected" }),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "bids"] });
-      toast({
-        title: "Success",
-        description: "Bid rejected",
-      });
-    },
-  });
 
   const getCategoryColor = (category: string) => {
     const colorMap: { [key: string]: string } = {
@@ -298,6 +236,43 @@ export default function ProjectDetails() {
               )}
             </CardContent>
           </Card>
+
+          {/* AI Analysis Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-blue-600" />
+                AI Analysis & Recommendations
+                <Link href={`/ai/recommendations/${projectId}`}>
+                  <Button variant="outline" size="sm">
+                    View All
+                  </Button>
+                </Link>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AIAnalysis 
+                projectId={projectId} 
+                onContractorSelect={(contractorId) => {
+                  // Navigate to contractor profile
+                  window.open(`/contractor/${contractorId}`, '_blank');
+                }}
+              />
+            </CardContent>
+          </Card>
+
+          {/* AI Dashboard Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-blue-600" />
+                AI-Powered Project Assistant
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AIDashboard projectId={projectId} />
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar */}
@@ -369,6 +344,12 @@ export default function ProjectDetails() {
               <Link href={`/projects/${projectId}/bids`}>
                 <Button className="w-full">
                   Manage Bids
+                </Button>
+              </Link>
+              <Link href={`/ai/recommendations/${projectId}`}>
+                <Button className="w-full" variant="outline">
+                  <Brain className="w-4 h-4 mr-2" />
+                  AI Recommendations
                 </Button>
               </Link>
             </CardContent>

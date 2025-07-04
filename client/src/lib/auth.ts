@@ -1,4 +1,5 @@
 import { User } from "@shared/schema";
+import { firebaseSignOut } from './firebase';
 
 interface AuthState {
   user: User | null;
@@ -21,6 +22,7 @@ class AuthManager {
         this.state.user = JSON.parse(savedUser);
         this.state.isAuthenticated = true;
       } catch (error) {
+        console.error('Error parsing saved user data:', error);
         localStorage.removeItem('user');
       }
     }
@@ -51,7 +53,16 @@ class AuthManager {
     this.notify();
   }
 
-  logout() {
+  async logout() {
+    try {
+      // Sign out from Firebase if configured
+      await firebaseSignOut();
+    } catch (error) {
+      console.warn('Firebase sign out failed:', error);
+      // Continue with local logout even if Firebase logout fails
+    }
+    
+    // Clear local auth state
     this.state.user = null;
     this.state.isAuthenticated = false;
     localStorage.removeItem('user');

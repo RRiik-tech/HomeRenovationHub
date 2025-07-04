@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { insertProjectSchema } from "@shared/schema";
 import { PROJECT_CATEGORIES, BUDGET_RANGES, TIMELINE_OPTIONS } from "@/lib/constants";
@@ -25,13 +26,14 @@ type FormData = z.infer<typeof formSchema>;
 export default function PostProject() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      homeownerId: 1, // Mock homeowner ID
+      homeownerId: user?.id || 1, // Use actual user ID or fallback
       title: "",
       description: "",
       category: "",
@@ -57,8 +59,9 @@ export default function PostProject() {
         formData.append('photos', file);
       });
 
-      // Add homeownerId for demo
-      formData.append('homeownerId', '3');
+      // Use actual user ID or fallback for demo
+      const homeownerId = user?.id || 1;
+      formData.append('homeownerId', homeownerId.toString());
 
       const response = await fetch('/api/projects', {
         method: 'POST',
@@ -78,12 +81,12 @@ export default function PostProject() {
         description: "Your project has been posted and contractors will start bidding soon!",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
-      setLocation(`/project-details/${project.id}`);
+      setLocation(`/projects/${project.id}`);
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create project. Please try again.",
+        description: error.message || "Failed to create project. Please try again.",
         variant: "destructive",
       });
     },

@@ -11,8 +11,11 @@ import ProjectDetails from "@/pages/project-details";
 import ContractorProfile from "@/pages/contractor-profile";
 import BidManagement from "@/pages/bid-management";
 import Messaging from "@/pages/messaging";
+import { AIRecommendationsPage } from "@/pages/ai-recommendations";
+import ContractorDashboard from "@/pages/contractor-dashboard";
+import UserDashboard from "@/pages/user-dashboard";
 import Navigation from "@/components/navigation";
-import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
+import { useGoogleAuth } from "@/hooks/use-google-auth";
 
 function Router() {
   return (
@@ -20,17 +23,24 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/post-project" component={PostProject} />
       <Route path="/find-contractors" component={FindContractors} />
+      <Route path="/find-projects" component={FindContractors} />
       <Route path="/projects/:id" component={ProjectDetails} />
-      <Route path="/contractors/:id" component={ContractorProfile} />
       <Route path="/projects/:id/bids" component={BidManagement} />
+      <Route path="/contractors/:id" component={ContractorProfile} />
+      <Route path="/contractor-profile" component={ContractorProfile} />
+      <Route path="/profile" component={UserDashboard} />
       <Route path="/messaging/:projectId?" component={Messaging} />
+      <Route path="/ai/recommendations/:projectId" component={AIRecommendationsPage} />
+      <Route path="/contractor-dashboard" component={ContractorDashboard} />
+      <Route path="/user-dashboard" component={UserDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
 function App() {
-  useFirebaseAuth(); // Initialize Firebase auth listener
+  // Initialize Google authentication
+  useGoogleAuth();
   
   return (
     <QueryClientProvider client={queryClient}>
