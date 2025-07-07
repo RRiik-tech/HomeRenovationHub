@@ -30,10 +30,21 @@ export default function PostProject() {
   const queryClient = useQueryClient();
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
+  // Redirect if not authenticated
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">Authentication Required</h1>
+        <p className="text-xl text-gray-600 mb-8">Please sign in to post a project</p>
+        <Button onClick={() => setLocation('/')}>Go to Home</Button>
+      </div>
+    );
+  }
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      homeownerId: user?.id || 1, // Use actual user ID or fallback
+      homeownerId: user.id,
       title: "",
       description: "",
       category: "",
@@ -45,6 +56,10 @@ export default function PostProject() {
 
   const createProjectMutation = useMutation({
     mutationFn: async (data: FormData) => {
+      if (!user?.id) {
+        throw new Error('User authentication required');
+      }
+
       const formData = new FormData();
       
       // Append text fields
@@ -59,9 +74,8 @@ export default function PostProject() {
         formData.append('photos', file);
       });
 
-      // Use actual user ID or fallback for demo
-      const homeownerId = user?.id || 1;
-      formData.append('homeownerId', homeownerId.toString());
+      // Always use the authenticated user's ID
+      formData.append('homeownerId', user.id.toString());
 
       const response = await fetch('/api/projects', {
         method: 'POST',
@@ -77,11 +91,17 @@ export default function PostProject() {
     },
     onSuccess: (project) => {
       toast({
-        title: "Project Posted Successfully",
+        title: "Project Posted Successfully", 
         description: "Your project has been posted and contractors will start bidding soon!",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
-      setLocation(`/projects/${project.id}`);
+      
+      // Clear ALL cache to ensure fresh data
+      queryClient.clear();
+      
+      // Small delay to allow cache clearing, then navigate
+      setTimeout(() => {
+        setLocation(`/project/${project.id}`);
+      }, 200);
     },
     onError: (error) => {
       toast({

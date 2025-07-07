@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { useGoogleAuth } from "@/hooks/use-google-auth";
+
 import { apiRequest } from "@/lib/queryClient";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
@@ -80,7 +80,17 @@ export default function AuthModal({ children }: AuthModalProps) {
 
   const { toast } = useToast();
   const { login, isAuthenticated } = useAuth();
-  const { signInWithGoogle, isLoading: googleLoading, isFirebaseConfigured } = useGoogleAuth();
+  
+  // Temporarily disable Google auth to fix useState error
+  const signInWithGoogle = async () => {
+    toast({
+      title: "Google Sign-In Unavailable",
+      description: "Google authentication is currently being set up. Please use email/password to sign in.",
+      variant: "destructive",
+    });
+  };
+  const googleLoading = false;
+  const isFirebaseConfigured = false;
 
   // Close modal when user is authenticated
   useEffect(() => {

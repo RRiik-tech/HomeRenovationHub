@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'wouter';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
@@ -43,8 +44,9 @@ interface CompatibilityScore {
 }
 
 export function AIRecommendationsPage() {
-  const { projectId } = useParams<{ projectId: string }>();
-  const navigate = useNavigate();
+  const params = useParams<{ projectId: string }>();
+  const projectId = params.projectId;
+  const [location, navigate] = useLocation();
   const [recommendations, setRecommendations] = useState<CompatibilityScore[]>([]);
   const [filteredRecommendations, setFilteredRecommendations] = useState<CompatibilityScore[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,9 +74,9 @@ export function AIRecommendationsPage() {
       setLoading(true);
       setError(null);
       
-      const response = await apiRequest('GET', `/api/ai/recommendations/${projectId}`);
+      const response = await apiRequest('GET', `/api/ai/analyze-project/${projectId}`);
       const data = await response.json();
-      setRecommendations(data);
+      setRecommendations(data.compatibilityScores || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load AI recommendations');
     } finally {
@@ -182,7 +184,7 @@ export function AIRecommendationsPage() {
       <div className="mb-8">
         <Button 
           variant="ghost" 
-          onClick={() => navigate(-1)}
+          onClick={() => window.history.back()}
           className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -440,4 +442,6 @@ export function AIRecommendationsPage() {
       )}
     </div>
   );
-} 
+}
+
+export default AIRecommendationsPage;

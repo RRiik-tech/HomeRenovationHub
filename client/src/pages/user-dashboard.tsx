@@ -39,9 +39,12 @@ import {
   Filter,
   Handshake,
   ClipboardList,
-  Save
+  Save,
+  FolderOpen,
+  FolderClosed
 } from "lucide-react";
 import { Link } from "wouter";
+import type { Project } from "@shared/schema";
 
 interface UserProject {
   id: number;
@@ -123,6 +126,7 @@ export default function UserDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
+  const [projectTab, setProjectTab] = useState("open");
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     firstName: user?.firstName || '',
@@ -135,17 +139,29 @@ export default function UserDashboard() {
   });
 
   // Fetch user's projects
-  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+  const { data: projects = [], isLoading: projectsLoading, refetch: refetchProjects } = useQuery({
     queryKey: ['user-projects', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const response = await fetch(`/api/users/${user.id}/projects`);
+      // Add timestamp to force fresh request and disable all caching
+      const timestamp = Date.now();
+      const response = await fetch(`/api/users/${user.id}/projects?_t=${timestamp}&_nc=${Math.random()}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch projects');
       
       return response.json();
     },
     enabled: !!user?.id,
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache data
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // Fetch contractor connections
@@ -247,6 +263,15 @@ export default function UserDashboard() {
     },
   });
 
+  // Filter projects based on status
+  const openProjects = projects.filter((project: Project) => 
+    project.status === 'open' || project.status === 'in_progress'
+  );
+  
+  const closedProjects = projects.filter((project: Project) => 
+    project.status === 'completed' || project.status === 'cancelled'
+  );
+
   if (!user) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -260,12 +285,17 @@ export default function UserDashboard() {
     );
   }
 
-  if (projectsLoading) {
+  if (projectsLoading || connectionsLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4">Loading your dashboard...</p>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded mb-6"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="bg-gray-200 h-32 rounded"></div>
+            <div className="bg-gray-200 h-32 rounded"></div>
+            <div className="bg-gray-200 h-32 rounded"></div>
+            <div className="bg-gray-200 h-32 rounded"></div>
+          </div>
         </div>
       </div>
     );
@@ -273,465 +303,344 @@ export default function UserDashboard() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'accepted':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'rejected':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-blue-500" />;
+      case 'open':
+        return <FolderOpen className="w-4 h-4" />;
       case 'in_progress':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+        return <Clock className="w-4 h-4" />;
+      case 'completed':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'cancelled':
+        return <XCircle className="w-4 h-4" />;
       default:
-        return <AlertCircle className="h-4 w-4 text-gray-500" />;
+        return <AlertCircle className="w-4 h-4" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'accepted':
-        return 'bg-green-100 text-green-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800';
-      case 'in_progress':
-        return 'bg-yellow-100 text-yellow-800';
       case 'open':
-        return 'bg-gray-100 text-gray-800';
+        return "text-blue-600 bg-blue-50";
+      case 'in_progress':
+        return "text-orange-600 bg-orange-50";
+      case 'completed':
+        return "text-green-600 bg-green-50";
+      case 'cancelled':
+        return "text-red-600 bg-red-50";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "text-gray-600 bg-gray-50";
     }
   };
 
   const getProjectStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
       case 'open':
-        return 'bg-yellow-100 text-yellow-800';
+        return "bg-blue-100 text-blue-800";
+      case 'in_progress':
+        return "bg-orange-100 text-orange-800";
+      case 'completed':
+        return "bg-green-100 text-green-800";
       case 'cancelled':
-        return 'bg-red-100 text-red-800';
+        return "bg-red-100 text-red-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const openProjects = projects.filter((project: UserProject) => project.status === 'open');
-  const inProgressProjects = projects.filter((project: UserProject) => project.status === 'in_progress');
-  const completedProjects = projects.filter((project: UserProject) => project.status === 'completed');
   const totalBids = projects.reduce((sum: number, project: UserProject) => sum + project.bidCount, 0);
   const pendingBids = projects.reduce((sum: number, project: UserProject) => 
     sum + project.bids.filter((bid: ProjectBid) => bid.status === 'pending').length, 0);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-8">
-        <div className="flex items-center space-x-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={user.photoURL || undefined} />
-            <AvatarFallback>
-              {user.firstName[0]}{user.lastName[0]}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-3xl font-bold">Welcome back, {user.firstName}!</h1>
-            <p className="text-gray-600">{user.email}</p>
-            <div className="flex items-center mt-1">
-              <Home className="h-4 w-4 text-gray-500 mr-1" />
-              <span className="text-sm text-gray-500">{user.city}, {user.state}</span>
-            </div>
-          </div>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">My Dashboard</h1>
+          <p className="text-gray-600">Welcome back, {user?.firstName}</p>
         </div>
-        <Button onClick={() => setEditingProfile(!editingProfile)}>
-          <Edit className="h-4 w-4 mr-2" />
-          Edit Profile
-        </Button>
+        <Link href="/post-project">
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Post New Project
+          </Button>
+        </Link>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{projects.length}</div>
-            <p className="text-xs text-muted-foreground">{openProjects.length} active</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">New Bids</CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pendingBids}</div>
-            <p className="text-xs text-muted-foreground">{totalBids} total received</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Contractors</CardTitle>
-            <Handshake className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{connections.length}</div>
-            <p className="text-xs text-muted-foreground">Connected contractors</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{completedProjects.length}</div>
-            <p className="text-xs text-muted-foreground">Finished projects</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="projects">My Projects</TabsTrigger>
-          <TabsTrigger value="bids">New Bids</TabsTrigger>
           <TabsTrigger value="contractors">Contractors</TabsTrigger>
+          <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Projects */}
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <ClipboardList className="h-5 w-5 mr-2" />
-                  Recent Projects
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {projects.slice(0, 3).map((project: UserProject) => (
-                    <div key={project.id} className="flex justify-between items-start p-3 border rounded-lg">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{project.title}</h4>
-                        <p className="text-sm text-gray-600">{project.category}</p>
-                        <p className="text-sm text-gray-500">{project.bidCount} bids received</p>
-                      </div>
-                      <Badge className={getProjectStatusColor(project.status)}>
-                        {getStatusIcon(project.status)}
-                        <span className="ml-1 capitalize">{project.status.replace('_', ' ')}</span>
-                      </Badge>
-                    </div>
-                  ))}
-                  {projects.length === 0 && (
-                    <p className="text-gray-500 text-center py-4">No projects yet</p>
-                  )}
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+                    <div className="text-2xl font-bold">{projects.length}</div>
+                  </div>
+                  <Home className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-medium">Open Projects</CardTitle>
+                    <div className="text-2xl font-bold">{openProjects.length}</div>
+                  </div>
+                  <FolderOpen className="h-8 w-8 text-muted-foreground" />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Recent Bids */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <UserCheck className="h-5 w-5 mr-2" />
-                  Recent Bids
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {projects.flatMap((project: UserProject) => 
-                    project.bids.filter((bid: ProjectBid) => bid.status === 'pending').slice(0, 3)
-                      .map((bid: ProjectBid) => (
-                        <div key={bid.id} className="flex justify-between items-start p-3 border rounded-lg">
-                          <div className="flex-1">
-                            <h4 className="font-medium">{bid.contractor.companyName}</h4>
-                            <p className="text-sm text-gray-600">For: {project.title}</p>
-                            <p className="text-sm font-medium text-green-600">${bid.amount.toLocaleString()}</p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button 
-                              size="sm" 
-                              onClick={() => updateBidStatus.mutate({ bidId: bid.id, status: 'accepted' })}
-                            >
-                              Accept
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => updateBidStatus.mutate({ bidId: bid.id, status: 'rejected' })}
-                            >
-                              Decline
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                  )}
-                  {pendingBids === 0 && (
-                    <p className="text-gray-500 text-center py-4">No new bids</p>
-                  )}
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-medium">Completed Projects</CardTitle>
+                    <div className="text-2xl font-bold">{projects.filter((p: Project) => p.status === 'completed').length}</div>
+                  </div>
+                  <CheckCircle className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-medium">Connected Contractors</CardTitle>
+                    <div className="text-2xl font-bold">{connections.length}</div>
+                  </div>
+                  <Users className="h-8 w-8 text-muted-foreground" />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Quick Actions */}
+          {/* Recent Projects */}
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>Recent Projects</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button asChild className="h-20 flex-col">
+              {projects.length === 0 ? (
+                <div className="text-center py-8">
+                  <Home className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No projects yet</h3>
+                  <p className="text-gray-600 mb-4">Start by posting your first project</p>
                   <Link href="/post-project">
-                    <Plus className="h-6 w-6 mb-2" />
-                    Post New Project
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Post Project
+                    </Button>
                   </Link>
-                </Button>
-                <Button asChild variant="outline" className="h-20 flex-col">
-                  <Link href="/find-contractors">
-                    <Search className="h-6 w-6 mb-2" />
-                    Find Contractors
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="h-20 flex-col">
-                  <Link href="/messaging">
-                    <MessageSquare className="h-6 w-6 mb-2" />
-                    Messages
-                  </Link>
-                </Button>
-              </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {projects.slice(0, 3).map((project: any) => (
+                    <div key={project.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{project.title}</h4>
+                        <p className="text-sm text-gray-600">{project.category}</p>
+                        <div className="flex items-center space-x-4 mt-2">
+                          <span className="text-sm text-gray-500">
+                            <MapPin className="w-3 h-3 inline mr-1" />
+                            {project.address}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            <DollarSign className="w-3 h-3 inline mr-1" />
+                            {project.budget}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Badge className={getProjectStatusColor(project.status)}>
+                          {getStatusIcon(project.status)}
+                          <span className="ml-1 capitalize">{project.status.replace('_', ' ')}</span>
+                        </Badge>
+                        <span className="text-sm text-gray-500">{project.bidCount || 0} bids</span>
+                        <Link href={`/project/${project.id}`}>
+                          <Button variant="outline" size="sm">
+                            <Eye className="w-4 h-4 mr-1" />
+                            View
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Projects Tab */}
         <TabsContent value="projects" className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">My Projects</h2>
-            <Button asChild>
-              <Link href="/post-project">
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Project
-              </Link>
-            </Button>
+            <Link href="/post-project">
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Post New Project
+              </Button>
+            </Link>
           </div>
 
-          <div className="space-y-4">
-            {projects.map((project: UserProject) => (
-              <Card key={project.id}>
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold mb-2">{project.title}</h3>
-                      <p className="text-gray-600 mb-2">{project.description}</p>
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <span className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          {project.address}
-                        </span>
-                        <span className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {project.timeline}
-                        </span>
-                        <Badge variant="outline">{project.category}</Badge>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <Badge className={getProjectStatusColor(project.status)}>
-                        {getStatusIcon(project.status)}
-                        <span className="ml-1 capitalize">{project.status.replace('_', ' ')}</span>
-                      </Badge>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Posted {new Date(project.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t pt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Budget</p>
-                        <p className="font-medium">{project.budget}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Bids Received</p>
-                        <p className="font-medium">{project.bidCount}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Timeline</p>
-                        <p className="font-medium">{project.timeline}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <div className="flex space-x-2">
-                        <Button variant="outline" asChild>
-                          <Link href={`/projects/${project.id}`}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </Link>
-                        </Button>
-                        {project.bidCount > 0 && (
-                          <Button variant="outline" asChild>
-                            <Link href={`/projects/${project.id}/bids`}>
-                              <UserCheck className="h-4 w-4 mr-2" />
-                              View Bids ({project.bidCount})
-                            </Link>
-                          </Button>
-                        )}
-                      </div>
-                      
-                      {project.status === 'open' && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => updateProjectStatus.mutate({ projectId: project.id, status: 'closed' })}
-                        >
-                          Close Project
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          
-          {projects.length === 0 && (
-            <Card>
-              <CardContent className="text-center py-12">
-                <ClipboardList className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium mb-2">No projects yet</h3>
-                <p className="text-gray-600 mb-4">Post your first project to get started</p>
-                <Button asChild>
-                  <Link href="/post-project">Create Project</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
+          {/* Project Tabs */}
+          <Tabs value={projectTab} onValueChange={setProjectTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="open" className="flex items-center">
+                <FolderOpen className="w-4 h-4 mr-2" />
+                Open Projects ({openProjects.length})
+              </TabsTrigger>
+              <TabsTrigger value="closed" className="flex items-center">
+                <FolderClosed className="w-4 h-4 mr-2" />
+                Closed Projects ({closedProjects.length})
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Bids Tab */}
-        <TabsContent value="bids" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">New Bids</h2>
-            <Badge variant="outline">{pendingBids} Pending Review</Badge>
-          </div>
-
-          <div className="space-y-4">
-            {projects.map((project: UserProject) => 
-              project.bids.filter((bid: ProjectBid) => bid.status === 'pending').map((bid: ProjectBid) => (
-                <Card key={bid.id}>
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={bid.contractor.user.photoURL || undefined} />
-                            <AvatarFallback>
-                              {bid.contractor.user.firstName[0]}{bid.contractor.user.lastName[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <h3 className="font-semibold">{bid.contractor.companyName}</h3>
-                            <p className="text-sm text-gray-600">
-                              {bid.contractor.user.firstName} {bid.contractor.user.lastName}
-                            </p>
-                          </div>
-                          {bid.contractor.isVerified && (
-                            <Badge variant="secondary">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Verified
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-600 mb-2">Project: {project.title}</p>
-                        <div className="flex items-center space-x-4 text-sm">
-                          <div className="flex items-center">
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                            <span>{bid.contractor.rating.toFixed(1)}</span>
-                            <span className="text-gray-500 ml-1">({bid.contractor.reviewCount} reviews)</span>
-                          </div>
-                          <span className="text-gray-500">•</span>
-                          <span>{bid.contractor.specialties.join(', ')}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-green-600">${bid.amount.toLocaleString()}</p>
-                        <p className="text-sm text-gray-500">Timeline: {bid.timeline}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="border-t pt-4 mb-4">
-                      <h4 className="font-medium mb-2">Proposal</h4>
-                      <p className="text-sm text-gray-600">{bid.proposal}</p>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <div className="flex space-x-2">
-                        <Button variant="outline" asChild>
-                          <Link href={`/contractors/${bid.contractor.id}`}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Profile
-                          </Link>
-                        </Button>
-                        <Button variant="outline" asChild>
-                          <Link href={`/messaging/${project.id}?contractor=${bid.contractor.id}`}>
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            Message
-                          </Link>
-                        </Button>
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        <Button 
-                          onClick={() => updateBidStatus.mutate({ bidId: bid.id, status: 'accepted' })}
-                          disabled={updateBidStatus.isPending}
-                        >
-                          Accept Bid
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          onClick={() => updateBidStatus.mutate({ bidId: bid.id, status: 'rejected' })}
-                          disabled={updateBidStatus.isPending}
-                        >
-                          Decline
-                        </Button>
-                      </div>
-                    </div>
+            <TabsContent value="open" className="space-y-4">
+              {openProjects.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No open projects</h3>
+                    <p className="text-gray-600 mb-4">Create your first project to get started</p>
+                    <Link href="/post-project">
+                      <Button>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Post Project
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
-              ))
-            )}
-          </div>
-          
-          {pendingBids === 0 && (
-            <Card>
-              <CardContent className="text-center py-12">
-                <UserCheck className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium mb-2">No new bids</h3>
-                <p className="text-gray-600 mb-4">Check back later for new contractor proposals</p>
-                <Button asChild>
-                  <Link href="/post-project">Post Another Project</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                     {openProjects.map((project: any) => (
+                    <Card key={project.id} className="hover:shadow-lg transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <Badge className={getProjectStatusColor(project.status)}>
+                            {getStatusIcon(project.status)}
+                            <span className="ml-1 capitalize">{project.status.replace('_', ' ')}</span>
+                          </Badge>
+                          <span className="text-sm text-gray-500">{project.bidCount || 0} bids</span>
+                        </div>
+                        
+                        <h3 className="font-semibold text-lg mb-2">{project.title}</h3>
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{project.description}</p>
+                        
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center text-sm text-gray-600">
+                            <MapPin className="w-4 h-4 mr-2" />
+                            {project.address}
+                          </div>
+                          <div className="flex items-center text-sm text-gray-600">
+                            <DollarSign className="w-4 h-4 mr-2" />
+                            {project.budget}
+                          </div>
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            {project.timeline}
+                          </div>
+                        </div>
+                        
+                        <div className="flex space-x-2">
+                          <Link href={`/project/${project.id}`} className="flex-1">
+                            <Button variant="outline" className="w-full">
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Details
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateProjectStatus.mutate({ projectId: project.id, status: 'completed' })}
+                          >
+                            Close
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="closed" className="space-y-4">
+              {closedProjects.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <FolderClosed className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No closed projects</h3>
+                    <p className="text-gray-600">Your completed and cancelled projects will appear here</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                     {closedProjects.map((project: any) => (
+                    <Card key={project.id} className="hover:shadow-lg transition-shadow opacity-90">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <Badge className={getProjectStatusColor(project.status)}>
+                            {getStatusIcon(project.status)}
+                            <span className="ml-1 capitalize">{project.status.replace('_', ' ')}</span>
+                          </Badge>
+                          <span className="text-sm text-gray-500">{project.bidCount || 0} bids</span>
+                        </div>
+                        
+                        <h3 className="font-semibold text-lg mb-2">{project.title}</h3>
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{project.description}</p>
+                        
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center text-sm text-gray-600">
+                            <MapPin className="w-4 h-4 mr-2" />
+                            {project.address}
+                          </div>
+                          <div className="flex items-center text-sm text-gray-600">
+                            <DollarSign className="w-4 h-4 mr-2" />
+                            {project.budget}
+                          </div>
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            {project.timeline}
+                          </div>
+                        </div>
+                        
+                        <div className="flex space-x-2">
+                          <Link href={`/project/${project.id}`} className="flex-1">
+                            <Button variant="outline" className="w-full">
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Details
+                            </Button>
+                          </Link>
+                          {project.status !== 'completed' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateProjectStatus.mutate({ projectId: project.id, status: 'open' })}
+                            >
+                              Reopen
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
-        {/* Contractors Tab */}
         <TabsContent value="contractors" className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">Connected Contractors</h2>
@@ -822,7 +731,10 @@ export default function UserDashboard() {
           )}
         </TabsContent>
 
-        {/* Profile Tab */}
+        <TabsContent value="messages" className="space-y-6">
+          {/* Messages content */}
+        </TabsContent>
+
         <TabsContent value="profile" className="space-y-6">
           <h2 className="text-2xl font-bold">Profile & Account Settings</h2>
           
@@ -962,7 +874,7 @@ export default function UserDashboard() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Completed Projects:</span>
-                    <span className="font-medium">{completedProjects.length}</span>
+                                         <span className="font-medium">{projects.filter((p: any) => p.status === 'completed').length}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Connected Contractors:</span>

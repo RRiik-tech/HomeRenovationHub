@@ -228,9 +228,9 @@ export function AIAnalysis({ projectId, onContractorSelect }: AIAnalysisProps) {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-medium">
-                        {score.contractor.companyName}
+                        {score.contractor?.companyName || 'Unknown Company'}
                       </h4>
-                      {score.contractor.isVerified && (
+                      {score.contractor?.isVerified && (
                         <Badge variant="outline" className="text-xs">
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Verified
@@ -241,24 +241,24 @@ export function AIAnalysis({ projectId, onContractorSelect }: AIAnalysisProps) {
                     <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
                       <span className="flex items-center gap-1">
                         <MapPin className="h-3 w-3" />
-                        {score.contractor.user.city}, {score.contractor.user.state}
+                        {score.contractor?.user?.city || 'Unknown'}, {score.contractor?.user?.state || 'Unknown'}
                       </span>
                       <span className="flex items-center gap-1">
                         <Star className="h-3 w-3" />
-                        {score.contractor.rating} ({score.contractor.reviewCount} reviews)
+                        {score.contractor?.rating || '0'} ({score.contractor?.reviewCount || 0} reviews)
                       </span>
-                      <span>{score.contractor.experienceYears} years experience</span>
+                      <span>{score.contractor?.experienceYears || 0} years experience</span>
                     </div>
 
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {score.contractor.specialties.slice(0, 3).map((specialty, idx) => (
+                      {(score.contractor?.specialties || []).slice(0, 3).map((specialty, idx) => (
                         <Badge key={idx} variant="outline" className="text-xs">
                           {specialty}
                         </Badge>
                       ))}
-                      {score.contractor.specialties.length > 3 && (
+                      {(score.contractor?.specialties || []).length > 3 && (
                         <Badge variant="outline" className="text-xs">
-                          +{score.contractor.specialties.length - 3} more
+                          +{(score.contractor?.specialties || []).length - 3} more
                         </Badge>
                       )}
                     </div>
@@ -343,7 +343,7 @@ export function AIAnalysis({ projectId, onContractorSelect }: AIAnalysisProps) {
 
           {compatibilityScores.length > 5 && (
             <div className="text-center mt-4">
-              <Button variant="outline" onClick={() => window.open(`/ai/recommendations/${projectId}`, '_blank')}>
+              <Button variant="outline" onClick={() => window.open(`/ai-recommendations/${projectId}`, '_blank')}>
                 View All {compatibilityScores.length} Recommendations
               </Button>
             </div>

@@ -524,12 +524,12 @@ export function DocumentManager({
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => {
-                                    const link = document.createElement('a');
-                                    link.href = document.fileUrl;
-                                    link.download = document.name;
-                                    link.click();
-                                  }}
+                                                                onClick={() => {
+                                const link = window.document.createElement('a');
+                                link.href = document.fileUrl;
+                                link.download = document.name;
+                                link.click();
+                              }}
                                 >
                                   <Download className="h-4 w-4" />
                                 </Button>
@@ -591,7 +591,7 @@ export function DocumentManager({
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                  const link = document.createElement('a');
+                                  const link = window.document.createElement('a');
                                   link.href = document.fileUrl;
                                   link.download = document.name;
                                   link.click();

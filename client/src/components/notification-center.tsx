@@ -210,7 +210,7 @@ export function NotificationCenter({ isOpen = false, onClose }: NotificationCent
     if (notification.relatedType && notification.relatedId) {
       switch (notification.relatedType) {
         case 'project':
-          window.location.href = `/projects/${notification.relatedId}`;
+                        window.location.href = `/project/${notification.relatedId}`;
           break;
         case 'bid':
           // Navigate to bid management

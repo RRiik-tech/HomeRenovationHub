@@ -13,7 +13,7 @@ import { Link } from "wouter";
 import type { ProjectWithHomeowner } from "@/types/api";
 
 export default function ProjectDetails() {
-  const [, params] = useRoute("/projects/:id");
+  const [, params] = useRoute("/project/:id");
   const projectId = parseInt(params?.id || "0");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -191,7 +191,7 @@ export default function ProjectDetails() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Bids Received ({bids.length})</span>
-                <Link href={`/projects/${projectId}/bids`}>
+                <Link href={`/project/${projectId}/bids`}>
                   <Button variant="outline" size="sm">
                     Manage Bids
                   </Button>
@@ -225,7 +225,7 @@ export default function ProjectDetails() {
                   ))}
                   {bids.length > 3 && (
                     <div className="text-center pt-4">
-                      <Link href={`/projects/${projectId}/bids`}>
+                      <Link href={`/project/${projectId}/bids`}>
                         <Button variant="outline">
                           View All {bids.length} Bids
                         </Button>
@@ -243,7 +243,7 @@ export default function ProjectDetails() {
               <CardTitle className="flex items-center gap-2">
                 <Brain className="h-5 w-5 text-blue-600" />
                 AI Analysis & Recommendations
-                <Link href={`/ai/recommendations/${projectId}`}>
+                <Link href={`/ai-recommendations/${projectId}`}>
                   <Button variant="outline" size="sm">
                     View All
                   </Button>
@@ -341,12 +341,12 @@ export default function ProjectDetails() {
                   View Messages
                 </Button>
               </Link>
-              <Link href={`/projects/${projectId}/bids`}>
+              <Link href={`/project/${projectId}/bids`}>
                 <Button className="w-full">
                   Manage Bids
                 </Button>
               </Link>
-              <Link href={`/ai/recommendations/${projectId}`}>
+              <Link href={`/ai-recommendations/${projectId}`}>
                 <Button className="w-full" variant="outline">
                   <Brain className="w-4 h-4 mr-2" />
                   AI Recommendations

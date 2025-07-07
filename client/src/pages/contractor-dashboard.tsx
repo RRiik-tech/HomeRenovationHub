@@ -593,7 +593,7 @@ export default function ContractorDashboard() {
                     
                     <div className="flex justify-between items-center mt-4">
                       <Button variant="outline" asChild>
-                        <Link href={`/projects/${bid.project.id}`}>
+                        <Link href={`/project/${bid.project.id}`}>
                           <Eye className="h-4 w-4 mr-2" />
                           View Project
                         </Link>
