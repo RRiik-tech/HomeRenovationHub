@@ -14,6 +14,14 @@ import Messaging from "@/pages/messaging";
 import { AIRecommendationsPage } from "@/pages/ai-recommendations";
 import ContractorDashboard from "@/pages/contractor-dashboard";
 import UserDashboard from "@/pages/user-dashboard";
+import AnalyticsPage from "@/pages/analytics";
+import ReviewsPage from "@/pages/reviews";
+import PaymentsPage from "@/pages/payments";
+import DocumentsPage from "@/pages/documents";
+import CalendarPage from "@/pages/calendar";
+import NotificationsPage from "@/pages/notifications";
+import MarketplacePage from "@/pages/marketplace";
+import MobilePage from "@/pages/mobile";
 import Navigation from "@/components/navigation";
 import { useGoogleAuth } from "@/hooks/use-google-auth";
 
@@ -33,6 +41,14 @@ function Router() {
       <Route path="/ai/recommendations/:projectId" component={AIRecommendationsPage} />
       <Route path="/contractor-dashboard" component={ContractorDashboard} />
       <Route path="/user-dashboard" component={UserDashboard} />
+      <Route path="/analytics" component={AnalyticsPage} />
+      <Route path="/reviews" component={ReviewsPage} />
+      <Route path="/payments" component={PaymentsPage} />
+      <Route path="/documents" component={DocumentsPage} />
+      <Route path="/calendar" component={CalendarPage} />
+      <Route path="/notifications" component={NotificationsPage} />
+      <Route path="/marketplace" component={MarketplacePage} />
+      <Route path="/mobile" component={MobilePage} />
       <Route component={NotFound} />
     </Switch>
   );

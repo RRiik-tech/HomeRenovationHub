@@ -18,12 +18,11 @@ import multer, { type Multer } from "multer";
 import path from "path";
 import { AIAnalysisService } from "./ai-analysis";
 import {
-  createUser, getUser, getUserByEmail, updateUser,
+  createUser, getUser, getUserByEmail,
   createContractor, getContractor, getContractors, getContractorByUserId, getContractorsByCategory, getContractorsByLocation,
   createProject, getProject, getProjects, getProjectsByHomeowner, updateProjectStatus,
   createBid, getBid, getBidsByProject, getBidsByContractor, updateBidStatus, getBids,
-  createMessage, getMessagesByProject, getConversations,
-  createReview, getReviewsByProject, getReviewsByContractor
+  createMessage, getMessagesByProject, getConversations
 } from "./firebase-storage";
 
 // Extend Express Request type for file uploads
@@ -295,13 +294,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedUserData = insertUserSchema.parse(userData);
       
       // Check if user already exists
-      const existingUser = await storage.getUserByEmail(validatedUserData.email);
+      const existingUser = await getUserByEmail(validatedUserData.email);
       if (existingUser) {
         return res.status(400).json({ message: "User already exists" });
       }
       
       // Create user
-      const user = await storage.createUser(validatedUserData);
+      const user = await createUser(validatedUserData);
       
       // If user is a contractor, create contractor profile
       if (validatedUserData.userType === "contractor") {
@@ -341,7 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body;
-      const user = await storage.getUserByEmail(email);
+      const user = await getUserByEmail(email);
       
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Invalid credentials" });
@@ -362,20 +361,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Firebase UID and email are required" });
       }
 
-      // First check if user already exists by Firebase UID
-      let user = await storage.getUserByFirebaseUid(firebaseUid);
-      
-      // If not found by Firebase UID, check by email
-      if (!user) {
-        user = await storage.getUserByEmail(email);
-        
-        // If user exists by email but doesn't have Firebase UID, update it
-        if (user && !user.firebaseUid) {
-          // Update user with Firebase UID and photo URL
-          // Note: This would require an update method in storage
-          // For now, we'll create a new user
-        }
-      }
+      // Check if user already exists by email
+      let user = await getUserByEmail(email);
       
       if (!user) {
         // Create new user from Firebase data
@@ -399,7 +386,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isVerified: true, // Firebase users are pre-verified
         };
         
-        user = await storage.createUser(userData);
+        user = await createUser(userData);
       }
       
       res.json({ user });
@@ -424,13 +411,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/contractors/:id/bids", async (req, res) => {
     try {
       const contractorId = parseInt(req.params.id);
-      const bids = await storage.getBidsByContractor(contractorId);
+      const bids = await getBidsByContractor(contractorId);
       
       // Get project details for each bid
       const bidsWithProjects = await Promise.all(
         bids.map(async (bid) => {
-          const project = await storage.getProject(bid.projectId);
-          const homeowner = project ? await storage.getUser(project.homeownerId) : null;
+          const project = await getProject(bid.projectId);
+          const homeowner = project ? await getUser(project.homeownerId) : null;
           return {
             ...bid,
             project: project ? { ...project, homeowner } : null
@@ -448,12 +435,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/:id/projects", async (req, res) => {
     try {
       const homeownerId = parseInt(req.params.id);
-      const projects = await storage.getProjectsByHomeowner(homeownerId);
+      const projects = await getProjectsByHomeowner(homeownerId);
       
       // Get bid count for each project
       const projectsWithBids = await Promise.all(
         projects.map(async (project) => {
-          const bids = await storage.getBidsByProject(project.id);
+          const bids = await getBidsByProject(project.id);
           return {
             ...project,
             bidCount: bids.length,
@@ -463,6 +450,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       res.json(projectsWithBids);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Get contractor connections for homeowner
+  app.get("/api/users/:id/contractor-connections", async (req, res) => {
+    try {
+      const homeownerId = parseInt(req.params.id);
+      
+      // Get all bids for this homeowner's projects
+      const projects = await getProjectsByHomeowner(homeownerId);
+      const allBids: any[] = [];
+      
+      for (const project of projects) {
+        const bids = await getBidsByProject(project.id);
+        allBids.push(...bids.map(bid => ({ ...bid, project })));
+      }
+      
+      // Get unique contractors from bids
+      const contractorIds = Array.from(new Set(allBids.map(bid => bid.contractorId)));
+      const contractors = await Promise.all(
+        contractorIds.map(async (contractorId) => {
+          const contractor = await getContractor(contractorId);
+          const user = contractor ? await getUser(contractor.userId) : null;
+          const contractorBids = allBids.filter(bid => bid.contractorId === contractorId);
+          
+          return {
+            ...contractor,
+            user,
+            projectCount: contractorBids.length,
+            lastProject: contractorBids[contractorBids.length - 1]?.project?.title || '',
+            status: contractorBids.some(bid => bid.status === 'accepted') ? 'active' : 'potential'
+          };
+        })
+      );
+      
+      res.json(contractors.filter(Boolean));
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
