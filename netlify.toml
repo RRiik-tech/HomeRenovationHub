@@ -1,3 +1,4 @@
+# Updated: Force fresh deployment - ensure all changes are reflected
 [build]
   publish = "client/dist"
   command = "npm run build"
