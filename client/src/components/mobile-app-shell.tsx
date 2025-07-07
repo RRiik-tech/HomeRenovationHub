@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationBell } from "@/components/notification-center";
 import { 
   Home,
@@ -50,7 +50,7 @@ interface MobileAppShellProps {
 export function MobileAppShell({ children }: MobileAppShellProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);

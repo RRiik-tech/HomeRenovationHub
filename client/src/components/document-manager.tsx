@@ -27,7 +27,6 @@ import {
   File,
   Image,
   FileSpreadsheet,
-  FilePdf,
   FileVideo,
   FileAudio,
   FolderOpen,
@@ -215,7 +214,7 @@ export function DocumentManager({
       return <Image className="h-6 w-6 text-green-600" />;
     }
     if (mimeType.includes('pdf')) {
-      return <FilePdf className="h-6 w-6 text-red-600" />;
+      return <FileText className="h-6 w-6 text-red-600" />;
     }
     if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) {
       return <FileSpreadsheet className="h-6 w-6 text-green-600" />;
