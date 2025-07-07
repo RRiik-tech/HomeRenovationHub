@@ -1,3 +1,4 @@
+// Mobile App Shell Component - Updated for Netlify deployment
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
