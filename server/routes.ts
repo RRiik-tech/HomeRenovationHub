@@ -1106,6 +1106,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user contractor connections
+  app.get("/api/users/:id/contractor-connections", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const user = await getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // For homeowners, get contractors they've worked with through accepted bids
+      if (user.userType === 'homeowner') {
+        const projects = await getProjectsByHomeowner(userId);
+        const contractorConnections = [];
+        
+        for (const project of projects) {
+          const bids = await getBidsByProject(project.id);
+          const acceptedBids = bids.filter(bid => bid.status === 'accepted');
+          
+          for (const bid of acceptedBids) {
+            const contractor = await getContractor(bid.contractorId);
+            if (contractor) {
+              const contractorUser = await getUser(contractor.userId);
+              contractorConnections.push({
+                contractor: { ...contractor, user: contractorUser },
+                project: project,
+                bid: bid
+              });
+            }
+          }
+        }
+        
+        res.json(contractorConnections);
+      } else {
+        // For contractors, return empty array for now
+        res.json([]);
+      }
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

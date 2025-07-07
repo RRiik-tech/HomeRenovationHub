@@ -191,17 +191,18 @@ export class FirebaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
+      const newUserId = this.currentUserId++;
       const userData = {
         ...insertUser,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
       
-      const docRef = await db.collection('users').add(userData);
-      const idNum = Number(docRef.id);
+      // Use numeric ID as document ID
+      await db.collection('users').doc(newUserId.toString()).set(userData);
       
       return { 
-        id: Number.isNaN(idNum) ? this.currentUserId++ : idNum, 
+        id: newUserId, 
         ...userData,
         createdAt: new Date(userData.createdAt),
         updatedAt: new Date(userData.updatedAt)
@@ -257,6 +258,7 @@ export class FirebaseStorage implements IStorage {
 
   async createContractor(insertContractor: InsertContractor): Promise<Contractor> {
     try {
+      const newContractorId = this.currentContractorId++;
       const contractorData = {
         ...insertContractor,
         rating: "0.00",
@@ -266,11 +268,11 @@ export class FirebaseStorage implements IStorage {
         updatedAt: new Date().toISOString()
       };
       
-      const docRef = await db.collection('contractors').add(contractorData);
-      const idNum = Number(docRef.id);
+      // Use numeric ID as document ID
+      await db.collection('contractors').doc(newContractorId.toString()).set(contractorData);
       
       return { 
-        id: Number.isNaN(idNum) ? this.currentContractorId++ : idNum, 
+        id: newContractorId, 
         ...contractorData,
         portfolio: contractorData.portfolio || [],
         createdAt: new Date(contractorData.createdAt),
@@ -543,6 +545,7 @@ export class FirebaseStorage implements IStorage {
 
   async createBid(insertBid: InsertBid): Promise<Bid> {
     try {
+      const newBidId = this.currentBidId++;
       const bidData = {
         ...insertBid,
         status: 'pending',
@@ -550,11 +553,11 @@ export class FirebaseStorage implements IStorage {
         updatedAt: new Date().toISOString()
       };
       
-      const docRef = await db.collection('bids').add(bidData);
-      const idNum = Number(docRef.id);
+      // Use numeric ID as document ID
+      await db.collection('bids').doc(newBidId.toString()).set(bidData);
       
       return { 
-        id: Number.isNaN(idNum) ? this.currentBidId++ : idNum, 
+        id: newBidId, 
         ...bidData,
         createdAt: new Date(bidData.createdAt),
         updatedAt: new Date(bidData.updatedAt)
