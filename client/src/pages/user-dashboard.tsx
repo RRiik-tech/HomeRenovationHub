@@ -146,7 +146,9 @@ export default function UserDashboard() {
       
       // Add timestamp to force fresh request and disable all caching
       const timestamp = Date.now();
-      const response = await fetch(`/api/users/${user.id}/projects?_t=${timestamp}&_nc=${Math.random()}`, {
+      const { getApiUrl } = await import('@/lib/config');
+      const apiUrl = getApiUrl(`api/users/${user.id}/projects?_t=${timestamp}&_nc=${Math.random()}`);
+      const response = await fetch(apiUrl, {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -170,7 +172,9 @@ export default function UserDashboard() {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const response = await fetch(`/api/users/${user.id}/contractor-connections`);
+      const { getApiUrl } = await import('@/lib/config');
+      const apiUrl = getApiUrl(`api/users/${user.id}/contractor-connections`);
+      const response = await fetch(apiUrl);
       if (!response.ok) throw new Error('Failed to fetch connections');
       
       return response.json();
