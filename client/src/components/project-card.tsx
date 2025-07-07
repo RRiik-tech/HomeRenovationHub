@@ -36,7 +36,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
   };
 
   return (
-    <Link href={`/projects/${project.id}`}>
+    <Link href={`/project/${project.id}`}>
       <Card className="hover-lift overflow-hidden cursor-pointer">
         {project.photos && project.photos.length > 0 && (
           <img 

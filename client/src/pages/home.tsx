@@ -2,15 +2,385 @@ import HeroSection from "@/components/hero-section";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Star, Users, Clock, Shield, Wrench } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { CheckCircle, Star, Users, Clock, Shield, Wrench, Plus, TrendingUp, Calendar, MessageSquare, FileText, DollarSign, Building, Target, Award, MapPin, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import AuthModal from "@/components/auth-modal";
-import { FirebaseTest } from "@/components/firebase-test";
+// import { FirebaseTest } from "@/components/firebase-test";
 import { Link } from "wouter";
 
-export default function Home() {
-  const { isAuthenticated, user } = useAuth();
+// Homeowner Dashboard Component
+function HomeownerDashboard({ user }: { user: any }) {
+  const recentProjects = [
+    { id: 1, title: "Kitchen Renovation", status: "In Progress", progress: 75, budget: 45000, contractor: "Elite Renovations" },
+    { id: 2, title: "Bathroom Remodel", status: "Planning", progress: 20, budget: 25000, contractor: "Premium Builders" },
+    { id: 3, title: "Living Room Flooring", status: "Completed", progress: 100, budget: 15000, contractor: "Craft Masters" }
+  ];
 
+  const quickStats = {
+    totalProjects: 8,
+    activeProjects: 2,
+    totalSpent: 125000,
+    avgRating: 4.7
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <HeroSection />
+      
+      {/* Dashboard Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Projects</p>
+                  <p className="text-3xl font-bold text-gray-900">{quickStats.totalProjects}</p>
+                </div>
+                <Building className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Active Projects</p>
+                  <p className="text-3xl font-bold text-gray-900">{quickStats.activeProjects}</p>
+                </div>
+                <Zap className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Invested</p>
+                  <p className="text-3xl font-bold text-gray-900">${quickStats.totalSpent.toLocaleString()}</p>
+                </div>
+                <DollarSign className="h-8 w-8 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Avg Rating</p>
+                  <p className="text-3xl font-bold text-gray-900">{quickStats.avgRating}</p>
+                </div>
+                <Star className="h-8 w-8 text-yellow-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Projects Section */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Your Projects</CardTitle>
+                <Link href="/post-project">
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Project
+                  </Button>
+                </Link>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentProjects.map((project) => (
+                    <div key={project.id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold">{project.title}</h3>
+                        <Badge variant={project.status === 'Completed' ? 'default' : project.status === 'In Progress' ? 'secondary' : 'outline'}>
+                          {project.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">Contractor: {project.contractor}</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-600">Progress</span>
+                        <span className="text-sm font-medium">{project.progress}%</span>
+                      </div>
+                      <Progress value={project.progress} className="mb-2" />
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Budget: ${project.budget.toLocaleString()}</span>
+                        <Link href={`/project-details/${project.id}`}>
+                          <Button variant="ghost" size="sm">View Details</Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Actions & Updates */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Link href="/post-project" className="block">
+                  <Button className="w-full justify-start">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Post New Project
+                  </Button>
+                </Link>
+                <Link href="/find-contractors" className="block">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Users className="h-4 w-4 mr-2" />
+                    Find Contractors
+                  </Button>
+                </Link>
+                <Link href="/messages" className="block">
+                  <Button variant="outline" className="w-full justify-start">
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Messages
+                  </Button>
+                </Link>
+                <Link href="/analytics" className="block">
+                  <Button variant="outline" className="w-full justify-start">
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    View Analytics
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium">Kitchen milestone completed</p>
+                      <p className="text-xs text-gray-600">2 hours ago</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <MessageSquare className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium">New message from contractor</p>
+                      <p className="text-xs text-gray-600">5 hours ago</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <FileText className="h-5 w-5 text-purple-600" />
+                    <div>
+                      <p className="text-sm font-medium">Document uploaded</p>
+                      <p className="text-xs text-gray-600">1 day ago</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Contractor Dashboard Component
+function ContractorDashboard({ user }: { user: any }) {
+  const activeProjects = [
+    { id: 1, title: "Luxury Kitchen Remodel", client: "Smith Family", deadline: "2024-02-15", value: 65000, status: "In Progress" },
+    { id: 2, title: "Master Bathroom", client: "Johnson Family", deadline: "2024-01-30", value: 35000, status: "Planning" },
+    { id: 3, title: "Living Room Renovation", client: "Brown Family", deadline: "2024-03-10", value: 45000, status: "Proposal" }
+  ];
+
+  const businessStats = {
+    totalProjects: 47,
+    monthlyRevenue: 55000,
+    avgRating: 4.8,
+    responseRate: 94
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <HeroSection />
+      
+      {/* Dashboard Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Projects</p>
+                  <p className="text-3xl font-bold text-gray-900">{businessStats.totalProjects}</p>
+                </div>
+                <Building className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
+                  <p className="text-3xl font-bold text-gray-900">${businessStats.monthlyRevenue.toLocaleString()}</p>
+                </div>
+                <DollarSign className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Rating</p>
+                  <p className="text-3xl font-bold text-gray-900">{businessStats.avgRating}</p>
+                </div>
+                <Star className="h-8 w-8 text-yellow-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Response Rate</p>
+                  <p className="text-3xl font-bold text-gray-900">{businessStats.responseRate}%</p>
+                </div>
+                <Target className="h-8 w-8 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Projects Section */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Active Projects</CardTitle>
+                <Link href="/marketplace">
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Find Projects
+                  </Button>
+                </Link>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {activeProjects.map((project) => (
+                    <div key={project.id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold">{project.title}</h3>
+                        <Badge variant={project.status === 'In Progress' ? 'default' : project.status === 'Planning' ? 'secondary' : 'outline'}>
+                          {project.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">Client: {project.client}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Value: ${project.value.toLocaleString()}</span>
+                        <span className="text-sm text-gray-600">Due: {project.deadline}</span>
+                        <Link href={`/project-details/${project.id}`}>
+                          <Button variant="ghost" size="sm">Manage</Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Business Tools & Updates */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Business Tools</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Link href="/marketplace" className="block">
+                  <Button className="w-full justify-start">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Browse Projects
+                  </Button>
+                </Link>
+                <Link href="/contractor-dashboard" className="block">
+                  <Button variant="outline" className="w-full justify-start">
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </Button>
+                </Link>
+                <Link href="/bid-management" className="block">
+                  <Button variant="outline" className="w-full justify-start">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Manage Bids
+                  </Button>
+                </Link>
+                <Link href="/analytics" className="block">
+                  <Button variant="outline" className="w-full justify-start">
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Analytics
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Opportunities</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium">Kitchen Renovation</p>
+                      <p className="text-xs text-gray-600">San Francisco, CA</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold">$45k</p>
+                      <Button size="sm" variant="ghost">Bid</Button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium">Bathroom Remodel</p>
+                      <p className="text-xs text-gray-600">Oakland, CA</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold">$25k</p>
+                      <Button size="sm" variant="ghost">Bid</Button>
+                    </div>
+                  </div>
+                  <Link href="/marketplace">
+                    <Button variant="outline" className="w-full mt-3">View All Projects</Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Marketing Landing Page for Non-Authenticated Users
+function MarketingLandingPage() {
   const features = [
     {
       icon: <Users className="h-8 w-8 text-blue-600" />,
@@ -52,60 +422,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       <HeroSection />
-      
-      {/* Firebase Test Section - Only show in development */}
-      {import.meta.env.DEV && (
-        <section className="py-8 bg-yellow-50 border-b">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <FirebaseTest />
-          </div>
-        </section>
-      )}
-
-      {/* Welcome Message for Authenticated Users */}
-      {isAuthenticated && user && (
-        <section className="py-12 bg-blue-50 border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Welcome back, {user.firstName}! 👋
-              </h2>
-              <p className="text-xl text-gray-600 mb-8">
-                Ready to {user.userType === 'contractor' ? 'find new projects' : 'start your next renovation project'}?
-              </p>
-              <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-                {user.userType === 'contractor' ? (
-                  <>
-                    <Link href="/find-projects">
-                      <Button size="lg" className="button-gradient text-white">
-                        Browse Projects
-                      </Button>
-                    </Link>
-                    <Link href="/contractor-dashboard">
-                      <Button size="lg" variant="outline">
-                        View Dashboard
-                      </Button>
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <Link href="/post-project">
-                      <Button size="lg" className="button-gradient text-white">
-                        Post a Project
-                      </Button>
-                    </Link>
-                    <Link href="/find-contractors">
-                      <Button size="lg" variant="outline">
-                        Find Contractors
-                      </Button>
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Features Section */}
       <section className="py-16 bg-white">
@@ -225,7 +541,6 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      {!isAuthenticated && (
         <section className="py-16 bg-blue-600">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl font-bold text-white mb-4">
@@ -246,7 +561,22 @@ export default function Home() {
             </div>
           </div>
         </section>
-      )}
     </div>
   );
+}
+
+// Main Home Component
+export default function Home() {
+  const { isAuthenticated, user } = useAuth();
+
+  // Show different content based on authentication and user type
+  if (!isAuthenticated || !user) {
+    return <MarketingLandingPage />;
+  }
+
+  if (user.userType === 'contractor') {
+    return <ContractorDashboard user={user} />;
+  }
+
+  return <HomeownerDashboard user={user} />;
 }

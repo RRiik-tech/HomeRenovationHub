@@ -18,7 +18,7 @@ import multer, { type Multer } from "multer";
 import path from "path";
 import { AIAnalysisService } from "./ai-analysis";
 import {
-  createUser, getUser, getUserByEmail, updateUser,
+  createUser, getUser, getUserByEmail,
   createContractor, getContractor, getContractors, getContractorByUserId, getContractorsByCategory, getContractorsByLocation,
   createProject, getProject, getProjects, getProjectsByHomeowner, updateProjectStatus,
   createBid, getBid, getBidsByProject, getBidsByContractor, updateBidStatus, getBids,
@@ -444,11 +444,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint for testing
+  app.get("/api/debug/user/:id/projects", async (req, res) => {
+    console.log("🚀 DEBUG ENDPOINT HIT - User ID:", req.params.id);
+    try {
+      const homeownerId = parseInt(req.params.id);
+      console.log("🚀 DEBUG - Parsed homeowner ID:", homeownerId);
+      
+      // Test both function import and storage instance method
+      console.log("🚀 DEBUG - Testing imported getProjects function...");
+      const importedProjects = await getProjects();
+      console.log("🚀 DEBUG - Imported function returned:", importedProjects.length, "projects");
+      
+      console.log("🚀 DEBUG - Testing storage.getProjects method...");
+      const storageProjects = await storage.getProjects();
+      console.log("🚀 DEBUG - Storage method returned:", storageProjects.length, "projects");
+      
+      // Compare first few projects from both
+      console.log("🚀 DEBUG - First 3 imported projects:");
+      importedProjects.slice(0, 3).forEach((p, i) => {
+        console.log(`  ${i + 1}. ID: ${p.id}, homeownerId: ${p.homeownerId}, title: ${p.title}`);
+      });
+      
+      console.log("🚀 DEBUG - First 3 storage projects:");
+      storageProjects.slice(0, 3).forEach((p, i) => {
+        console.log(`  ${i + 1}. ID: ${p.id}, homeownerId: ${p.homeownerId}, title: ${p.title}`);
+      });
+      
+      const matchingProjects = importedProjects.filter(p => {
+        return Number(p.homeownerId) === Number(homeownerId);
+      });
+      
+      console.log("🚀 DEBUG - Found matching projects:", matchingProjects.length);
+      res.json({ 
+        importedTotal: importedProjects.length,
+        storageTotal: storageProjects.length,
+        matching: matchingProjects.length,
+        projects: matchingProjects.slice(0, 3)
+      });
+    } catch (error: any) {
+      console.error("🚀 DEBUG - Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Get homeowner projects
   app.get("/api/users/:id/projects", async (req, res) => {
     try {
+      // Disable caching for this endpoint to ensure fresh data
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.set('Expires', '0');
+      res.set('Pragma', 'no-cache');
+      
       const homeownerId = parseInt(req.params.id);
-      const projects = await storage.getProjectsByHomeowner(homeownerId);
+      console.log('API Route - Getting projects for homeowner:', homeownerId);
+      
+      // Debug: First get all projects to compare
+      const allProjects = await getProjects();
+      console.log('API Route - Total projects available:', allProjects.length);
+      console.log('API Route - Sample project homeowner IDs:', allProjects.slice(0, 5).map(p => ({ id: p.id, homeownerId: p.homeownerId, type: typeof p.homeownerId })));
+      
+      // Use imported function instead of storage method for consistency
+      const projects = allProjects.filter(project => Number(project.homeownerId) === Number(homeownerId));
+      console.log('API Route - Projects found for homeowner:', projects.length);
       
       // Get bid count for each project
       const projectsWithBids = await Promise.all(
@@ -462,8 +520,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
       
+      console.log('API Route - Returning projects with bids:', projectsWithBids.length);
       res.json(projectsWithBids);
     } catch (error: any) {
+      console.error('API Route - Error:', error);
       res.status(400).json({ message: error.message });
     }
   });
@@ -705,35 +765,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ai/analyze-project/:projectId", async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
-      const project = await storage.getProject(projectId);
+      const project = await getProject(projectId);
       
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
 
+      // Convert Firebase project to compatible format
+      const compatibleProject = {
+        ...project,
+        photos: project.photos || []
+      };
+
       // Get project analysis
-      const projectAnalysis = await aiService.analyzeProject(project);
+      const projectAnalysis = await aiService.analyzeProject(compatibleProject);
       
-      // Get compatible contractors
-      const compatibilityScores = await aiService.findCompatibleContractors(project);
-      
-      // Get contractor details for each score
-      const compatibilityWithDetails = await Promise.all(
-        compatibilityScores.map(async (score) => {
-          const contractor = await storage.getContractor(score.contractorId);
-          const user = contractor ? await storage.getUser(contractor.userId) : null;
-          return {
-            ...score,
-            contractor: contractor ? { ...contractor, user } : null
-          };
-        })
-      );
+      // Get compatible contractors - the AI service already includes contractor data with user info
+      const compatibilityScores = await aiService.findCompatibleContractors(compatibleProject);
 
       res.json({
         projectAnalysis,
-        compatibilityScores: compatibilityWithDetails
+        compatibilityScores
       });
     } catch (error: any) {
+      console.error('AI Analysis error:', error);
       res.status(400).json({ message: error.message });
     }
   });
@@ -742,13 +797,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ai/project-analysis/:projectId", async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
-      const project = await storage.getProject(projectId);
+      const project = await getProject(projectId);
       
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      const projectAnalysis = await aiService.analyzeProject(project);
+      // Convert Firebase project to compatible format
+      const compatibleProject = {
+        ...project,
+        photos: project.photos || []
+      };
+
+      const projectAnalysis = await aiService.analyzeProject(compatibleProject);
       res.json(projectAnalysis);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -805,18 +866,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ai/analyze-bid/:bidId", async (req, res) => {
     try {
       const bidId = parseInt(req.params.bidId);
-      const bid = await storage.getBid(bidId);
+      const bid = await getBid(bidId);
       
       if (!bid) {
         return res.status(404).json({ message: "Bid not found" });
       }
 
-      const project = await storage.getProject(bid.projectId);
+      const project = await getProject(bid.projectId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      const bidAnalysis = await aiService.analyzeBid(bid, project);
+      // Convert Firebase project to compatible format
+      const compatibleProject = {
+        ...project,
+        photos: project.photos || []
+      };
+
+      const bidAnalysis = await aiService.analyzeBid(bid, compatibleProject);
       res.json(bidAnalysis);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -848,13 +915,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ai/predict-timeline/:projectId", async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
-      const project = await storage.getProject(projectId);
+      const project = await getProject(projectId);
       
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      const timelinePrediction = await aiService.predictTimeline(project);
+      // Convert Firebase project to compatible format
+      const compatibleProject = {
+        ...project,
+        photos: project.photos || []
+      };
+
+      const timelinePrediction = await aiService.predictTimeline(compatibleProject);
       res.json(timelinePrediction);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -865,14 +938,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ai/risk-assessment/:projectId", async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
-      const project = await storage.getProject(projectId);
+      const project = await getProject(projectId);
       
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      const bids = await storage.getBidsByProject(projectId);
-      const riskAssessment = await aiService.assessProjectRisks(project, bids);
+      // Convert Firebase project to compatible format
+      const compatibleProject = {
+        ...project,
+        photos: project.photos || []
+      };
+
+      const bids = await getBidsByProject(projectId);
+      const riskAssessment = await aiService.assessProjectRisks(compatibleProject, bids);
       res.json(riskAssessment);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -883,13 +962,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ai/comprehensive-analysis/:projectId", async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
-      const project = await storage.getProject(projectId);
+      const project = await getProject(projectId);
       
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      const bids = await storage.getBidsByProject(projectId);
+      // Convert Firebase project to compatible format
+      const compatibleProject = {
+        ...project,
+        photos: project.photos || []
+      };
+
+      const bids = await getBidsByProject(projectId);
       
       // Run all AI analyses in parallel
       const [
@@ -899,11 +984,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         riskAssessment,
         bidAnalyses
       ] = await Promise.all([
-        aiService.analyzeProject(project),
-        aiService.findCompatibleContractors(project),
-        aiService.predictTimeline(project),
-        aiService.assessProjectRisks(project, bids),
-        Promise.all(bids.map(bid => aiService.analyzeBid(bid, project)))
+        aiService.analyzeProject(compatibleProject),
+        aiService.findCompatibleContractors(compatibleProject),
+        aiService.predictTimeline(compatibleProject),
+        aiService.assessProjectRisks(compatibleProject, bids),
+        Promise.all(bids.map(bid => aiService.analyzeBid(bid, compatibleProject)))
       ]);
 
       res.json({
@@ -913,6 +998,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
         riskAssessment,
         bidAnalyses
       });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Debug route for troubleshooting
+  app.get("/api/debug/projects", async (req, res) => {
+    try {
+      const allProjects = await getProjects();
+      const recentProjects = allProjects.slice(-10); // Get last 10 projects
+      
+      res.json({
+        totalProjects: allProjects.length,
+        recentProjects: recentProjects.map(p => ({
+          id: p.id,
+          title: p.title,
+          homeownerId: p.homeownerId,
+          status: p.status,
+          createdAt: p.createdAt
+        })),
+        allProjectIds: allProjects.map(p => p.id).sort((a, b) => b - a).slice(0, 20) // Most recent 20 IDs
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  });
+
+  // User stats endpoint for profile page
+  app.get("/api/users/:id/stats", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const user = await getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      let stats = {
+        totalProjects: 0,
+        averageRating: 0,
+        totalReviews: 0,
+        memberSince: user.createdAt
+      };
+
+      if (user.userType === 'homeowner') {
+        // Get homeowner projects
+        const projects = await getProjectsByHomeowner(userId);
+        stats.totalProjects = projects.length;
+        
+        // Get reviews for homeowner (as a reviewer)
+        // For now, we'll set this to 0 since we don't have a getReviewsByReviewer method
+        // TODO: Implement getReviewsByReviewer method
+        stats.totalReviews = 0;
+        
+      } else if (user.userType === 'contractor') {
+        // Get contractor information
+        const contractor = await getContractorByUserId(userId);
+        if (contractor) {
+          // Get contractor bids (represents projects worked on)
+          const bids = await getBidsByContractor(contractor.id);
+          const acceptedBids = bids.filter(bid => bid.status === 'accepted');
+          stats.totalProjects = acceptedBids.length;
+          
+          // Get contractor reviews
+          const reviews = await storage.getReviewsByContractor(contractor.id);
+          stats.totalReviews = reviews.length;
+          
+          if (reviews.length > 0) {
+            const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+            stats.averageRating = Number((totalRating / reviews.length).toFixed(1));
+          }
+        }
+      }
+
+      res.json(stats);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Update user profile endpoint
+  app.put("/api/users/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const updateData = req.body;
+      
+      // Validate that the user exists
+      const existingUser = await getUser(userId);
+      if (!existingUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update user data (this would need an updateUser method in storage)
+      // For now, we'll simulate the update
+      const updatedUser = { ...existingUser, ...updateData, updatedAt: new Date().toISOString() };
+      
+      // TODO: Implement actual updateUser method in firebase-storage.ts
+      // const updatedUser = await storage.updateUser(userId, updateData);
+      
+      res.json(updatedUser);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }

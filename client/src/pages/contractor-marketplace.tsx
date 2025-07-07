@@ -43,6 +43,33 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 
+// Helper functions
+const getSubscriptionBadge = (tier: string) => {
+  switch (tier) {
+    case 'enterprise':
+      return <Badge className="bg-purple-600 text-white"><Diamond className="h-3 w-3 mr-1" />Enterprise</Badge>;
+    case 'premium':
+      return <Badge className="bg-yellow-600 text-white"><Crown className="h-3 w-3 mr-1" />Premium</Badge>;
+    case 'pro':
+      return <Badge className="bg-blue-600 text-white"><Trophy className="h-3 w-3 mr-1" />Pro</Badge>;
+    default:
+      return <Badge variant="outline">Basic</Badge>;
+  }
+};
+
+const getAvailabilityColor = (availability: string) => {
+  switch (availability) {
+    case 'available':
+      return 'text-green-600 bg-green-50';
+    case 'busy':
+      return 'text-yellow-600 bg-yellow-50';
+    case 'booked':
+      return 'text-red-600 bg-red-50';
+    default:
+      return 'text-gray-600 bg-gray-50';
+  }
+};
+
 interface Contractor {
   id: number;
   companyName: string;
@@ -127,31 +154,7 @@ export default function ContractorMarketplace() {
     "Portland, OR", "San Diego, CA", "Sacramento, CA", "Oakland, CA"
   ];
 
-  const getSubscriptionBadge = (tier: string) => {
-    switch (tier) {
-      case 'enterprise':
-        return <Badge className="bg-purple-600 text-white"><Diamond className="h-3 w-3 mr-1" />Enterprise</Badge>;
-      case 'premium':
-        return <Badge className="bg-yellow-600 text-white"><Crown className="h-3 w-3 mr-1" />Premium</Badge>;
-      case 'pro':
-        return <Badge className="bg-blue-600 text-white"><Trophy className="h-3 w-3 mr-1" />Pro</Badge>;
-      default:
-        return <Badge variant="outline">Basic</Badge>;
-    }
-  };
 
-  const getAvailabilityColor = (availability: string) => {
-    switch (availability) {
-      case 'available':
-        return 'text-green-600 bg-green-50';
-      case 'busy':
-        return 'text-yellow-600 bg-yellow-50';
-      case 'booked':
-        return 'text-red-600 bg-red-50';
-      default:
-        return 'text-gray-600 bg-gray-50';
-    }
-  };
 
   const handleSaveContractor = (contractorId: number) => {
     setSavedContractors(prev => 
@@ -243,11 +246,14 @@ export default function ContractorMarketplace() {
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category.toLowerCase().replace(' ', '_')}>
-                      {category}
-                    </SelectItem>
-                  ))}
+                  {categories.map((category) => {
+                    const value = category === "All Categories" ? "all" : category.toLowerCase().replace(/\s+/g, '_');
+                    return (
+                      <SelectItem key={category} value={value}>
+                        {category}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
 
@@ -256,11 +262,14 @@ export default function ContractorMarketplace() {
                   <SelectValue placeholder="Location" />
                 </SelectTrigger>
                 <SelectContent>
-                  {locations.map((location) => (
-                    <SelectItem key={location} value={location.toLowerCase().replace(' ', '_')}>
-                      {location}
-                    </SelectItem>
-                  ))}
+                  {locations.map((location) => {
+                    const value = location === "All Locations" ? "all" : location.toLowerCase().replace(/\s+/g, '_');
+                    return (
+                      <SelectItem key={location} value={value}>
+                        {location}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
 

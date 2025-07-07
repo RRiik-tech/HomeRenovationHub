@@ -10,7 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 
 export default function BidManagement() {
-  const [, params] = useRoute("/projects/:id/bids");
+  const [, params] = useRoute("/project/:id/bids");
   const projectId = parseInt(params?.id || "0");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -125,7 +125,7 @@ export default function BidManagement() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Back Navigation */}
       <div className="mb-6">
-        <Link href={`/projects/${projectId}`}>
+        <Link href={`/project/${projectId}`}>
           <Button variant="ghost" className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Project
@@ -275,7 +275,7 @@ export default function BidManagement() {
                 Your project is live and contractors will start submitting bids soon.
               </p>
               <div className="flex justify-center space-x-4">
-                <Link href={`/projects/${projectId}`}>
+                <Link href={`/project/${projectId}`}>
                   <Button variant="outline">View Project</Button>
                 </Link>
                 <Link href="/find-contractors">

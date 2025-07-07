@@ -55,6 +55,58 @@ export class FirebaseStorage implements IStorage {
   private currentProjectId = 1;
   private currentBidId = 1;
   private currentMessageId = 1;
+  private initialized = false;
+
+  constructor() {
+    this.initializeCounters();
+  }
+
+  private async initializeCounters() {
+    if (this.initialized) return;
+    
+    try {
+      // Initialize project counter from existing data
+      const projectsSnapshot = await db.collection('projects').get();
+      if (!projectsSnapshot.empty) {
+        const allIds = projectsSnapshot.docs.map(doc => doc.data().id || 0).filter(id => typeof id === 'number');
+        const maxId = allIds.length > 0 ? Math.max(...allIds) : 0;
+        this.currentProjectId = maxId + 1;
+      }
+      
+      // Initialize other counters similarly
+      const usersSnapshot = await db.collection('users').get();
+      if (!usersSnapshot.empty) {
+        const allUserIds = usersSnapshot.docs.map(doc => doc.data().id || 0).filter(id => typeof id === 'number');
+        const maxUserId = allUserIds.length > 0 ? Math.max(...allUserIds) : 0;
+        this.currentUserId = maxUserId + 1;
+      }
+      
+      const contractorsSnapshot = await db.collection('contractors').get();
+      if (!contractorsSnapshot.empty) {
+        const allContractorIds = contractorsSnapshot.docs.map(doc => doc.data().id || 0).filter(id => typeof id === 'number');
+        const maxContractorId = allContractorIds.length > 0 ? Math.max(...allContractorIds) : 0;
+        this.currentContractorId = maxContractorId + 1;
+      }
+      
+      const bidsSnapshot = await db.collection('bids').get();
+      if (!bidsSnapshot.empty) {
+        const allBidIds = bidsSnapshot.docs.map(doc => doc.data().id || 0).filter(id => typeof id === 'number');
+        const maxBidId = allBidIds.length > 0 ? Math.max(...allBidIds) : 0;
+        this.currentBidId = maxBidId + 1;
+      }
+      
+      this.initialized = true;
+      console.log('Firebase counters initialized:', {
+        currentProjectId: this.currentProjectId,
+        currentUserId: this.currentUserId,
+        currentContractorId: this.currentContractorId,
+        currentBidId: this.currentBidId
+      });
+    } catch (error) {
+      console.error('Error initializing counters:', error);
+      this.initialized = true; // Continue with default values
+    }
+  }
 
   // Helper function to calculate distance between two points
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -290,20 +342,36 @@ export class FirebaseStorage implements IStorage {
   // Project operations
   async getProject(id: number): Promise<Project | undefined> {
     try {
-      const projectDoc = await db.collection('projects').doc(id.toString()).get();
-      if (projectDoc.exists) {
-        const data = projectDoc.data();
-        if (!data) return undefined;
-        
-        const idNum = Number(projectDoc.id);
+      // First try to find by incremental ID
+      const querySnapshot = await db.collection('projects').where('id', '==', id).get();
+      
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        const data = doc.data();
         return { 
-          id: Number.isNaN(idNum) ? this.currentProjectId++ : idNum, 
+          id: data.id,
           ...data,
           photos: data.photos || [],
           createdAt: new Date(data?.createdAt || new Date()),
           updatedAt: new Date(data?.updatedAt || new Date())
         } as unknown as Project;
       }
+      
+      // Fallback: try to find by document ID (for backward compatibility)
+      const projectDoc = await db.collection('projects').doc(id.toString()).get();
+      if (projectDoc.exists) {
+        const data = projectDoc.data();
+        if (!data) return undefined;
+        
+        return { 
+          id: data.id || id,
+          ...data,
+          photos: data.photos || [],
+          createdAt: new Date(data?.createdAt || new Date()),
+          updatedAt: new Date(data?.updatedAt || new Date())
+        } as unknown as Project;
+      }
+      
       return undefined;
     } catch (error) {
       console.error('Error getting project:', error);
@@ -313,19 +381,31 @@ export class FirebaseStorage implements IStorage {
 
   async createProject(insertProject: InsertProject): Promise<Project> {
     try {
+      // Ensure counters are initialized
+      await this.initializeCounters();
+      
+      console.log('Creating project with data:', insertProject);
+      console.log('Homeowner ID:', insertProject.homeownerId, 'type:', typeof insertProject.homeownerId);
+      
+      // Use incremental ID instead of timestamp to avoid conflicts
+      const projectId = this.currentProjectId++;
+      
       const projectData = {
         ...insertProject,
+        id: projectId,
         photos: insertProject.photos || [],
         status: 'open',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
       
-      const docRef = await db.collection('projects').add(projectData);
-      const idNum = Number(docRef.id);
+      // Create document with incremental ID
+      await db.collection('projects').doc(projectId.toString()).set(projectData);
+      
+      console.log('Project created successfully with ID:', projectId);
+      console.log('Project homeownerId in created project:', projectData.homeownerId);
       
       return { 
-        id: Number.isNaN(idNum) ? this.currentProjectId++ : idNum, 
         ...projectData,
         photos: projectData.photos || [],
         createdAt: new Date(projectData.createdAt),
@@ -343,9 +423,8 @@ export class FirebaseStorage implements IStorage {
       
       return querySnapshot.docs.map(doc => {
         const data = doc.data();
-        const idNum = Number(doc.id);
         return {
-          id: Number.isNaN(idNum) ? this.currentProjectId++ : idNum,
+          id: data.id || this.currentProjectId++,
           ...data,
           photos: data.photos || [],
           createdAt: new Date(data?.createdAt || new Date()),
@@ -360,31 +439,81 @@ export class FirebaseStorage implements IStorage {
 
   async getProjectsByHomeowner(homeownerId: number): Promise<Project[]> {
     try {
-      const querySnapshot = await db.collection('projects').where('homeownerId', '==', homeownerId).get();
+      console.log('🔍 Querying projects for homeownerId:', homeownerId, 'type:', typeof homeownerId);
       
-      return querySnapshot.docs.map(doc => {
+      // Direct Firebase query instead of filtering all projects
+      const querySnapshot = await db.collection('projects')
+        .where('homeownerId', '==', homeownerId)
+        .get();
+      
+      console.log('🔍 Direct Firebase query found:', querySnapshot.docs.length, 'projects');
+      
+      const directResults = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        const idNum = Number(doc.id);
+        console.log('🔍 Direct query result:', data.id, 'homeownerId:', data.homeownerId, 'title:', data.title);
         return {
-          id: Number.isNaN(idNum) ? this.currentProjectId++ : idNum,
+          id: data.id,
           ...data,
           photos: data.photos || [],
           createdAt: new Date(data?.createdAt || new Date()),
           updatedAt: new Date(data?.updatedAt || new Date())
         } as unknown as Project;
       });
+      
+      // ALSO try the fallback approach for comparison
+      console.log('🔍 Also trying fallback method...');
+      const allProjects = await this.getProjects();
+      console.log('🔍 Total projects in fallback:', allProjects.length);
+      
+      // Try different homeownerId comparisons
+      const targetAsNumber = Number(homeownerId);
+      const targetAsString = String(homeownerId);
+      
+      const matchingProjects = allProjects.filter(project => {
+        const projectHomeownerId = project.homeownerId;
+        const projectAsNumber = Number(projectHomeownerId);
+        const projectAsString = String(projectHomeownerId);
+        
+        const matches = 
+          projectAsNumber === targetAsNumber ||
+          projectAsString === targetAsString;
+        
+        if (matches) {
+          console.log('✅ Fallback found:', project.id, 'homeownerId:', project.homeownerId, 'title:', project.title);
+        }
+        
+        return matches;
+      });
+      
+      console.log('🔍 Direct query results:', directResults.length);
+      console.log('🔍 Fallback results:', matchingProjects.length);
+      
+      // Return the method that found more results, or direct query if tied
+      return directResults.length >= matchingProjects.length ? directResults : matchingProjects;
     } catch (error) {
-      console.error('Error getting projects by homeowner:', error);
+      console.error('❌ Error getting projects by homeowner:', error);
       return [];
     }
   }
 
   async updateProjectStatus(id: number, status: string): Promise<void> {
     try {
-      await db.collection('projects').doc(id.toString()).update({ 
-        status,
-        updatedAt: new Date().toISOString()
-      });
+      // Find the document by incremental ID
+      const querySnapshot = await db.collection('projects').where('id', '==', id).get();
+      
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        await doc.ref.update({ 
+          status,
+          updatedAt: new Date().toISOString()
+        });
+      } else {
+        // Fallback: try to update by document ID (for backward compatibility)
+        await db.collection('projects').doc(id.toString()).update({ 
+          status,
+          updatedAt: new Date().toISOString()
+        });
+      }
     } catch (error) {
       console.error('Error updating project status:', error);
       throw new Error('Failed to update project status');
@@ -669,6 +798,11 @@ export const getBids = getAllBids;
 export const createMessage = storage.createMessage.bind(storage);
 export const getMessagesByProject = storage.getMessagesByProject.bind(storage);
 export const getConversations = storage.getConversations.bind(storage);
+
+// Review exports
+export const createReview = storage.createReview.bind(storage);
+export const getReviewsByProject = storage.getReviewsByProject.bind(storage);
+export const getReviewsByContractor = storage.getReviewsByContractor.bind(storage);
 
 let fallbackBidId = 1;
 export async function getAllBids() {
