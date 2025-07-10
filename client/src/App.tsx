@@ -33,7 +33,6 @@ import NotFound from "@/pages/not-found";
 console.log("App.tsx loaded");
 
 function App() {
-  console.log("App component rendering");
   const { isAuthenticated, user } = useAuth();
   const isMobile = useMobile();
 

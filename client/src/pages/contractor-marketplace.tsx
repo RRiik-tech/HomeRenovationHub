@@ -684,7 +684,7 @@ function generateMockContractors(): Contractor[] {
     priceRange: "$50-150/hr",
     availability: availabilities[Math.floor(Math.random() * availabilities.length)] as any,
     subscriptionTier: tiers[Math.floor(Math.random() * tiers.length)] as any,
-    profileImage: `https://images.unsplash.com/photo-${1500000000000 + index * 1000}?w=100&h=100&fit=crop&crop=face`,
+    profileImage: `https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face`,
     portfolioImages: [],
     certifications: ["Licensed", "Insured", "Bonded"],
     insuranceVerified: true,
