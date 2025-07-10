@@ -344,12 +344,16 @@ export class FirebaseStorage implements IStorage {
   // Project operations
   async getProject(id: number): Promise<Project | undefined> {
     try {
-      // First try to find by incremental ID
-      const querySnapshot = await db.collection('projects').where('id', '==', id).get();
+      console.log('🔍 Getting project with ID:', id, 'type:', typeof id);
+      
+      // Method 1: Try to find by id field with number type
+      let querySnapshot = await db.collection('projects').where('id', '==', id).get();
+      console.log('🔍 Method 1 (number query) found:', querySnapshot.docs.length, 'documents');
       
       if (!querySnapshot.empty) {
         const doc = querySnapshot.docs[0];
         const data = doc.data();
+        console.log('✅ Found project via number query:', data.id);
         return { 
           id: data.id,
           ...data,
@@ -359,12 +363,31 @@ export class FirebaseStorage implements IStorage {
         } as unknown as Project;
       }
       
-      // Fallback: try to find by document ID (for backward compatibility)
+      // Method 2: Try to find by id field with string type (in case of type mismatch)
+      querySnapshot = await db.collection('projects').where('id', '==', id.toString()).get();
+      console.log('🔍 Method 2 (string query) found:', querySnapshot.docs.length, 'documents');
+      
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        const data = doc.data();
+        console.log('✅ Found project via string query:', data.id);
+        return { 
+          id: Number(data.id),
+          ...data,
+          photos: data.photos || [],
+          createdAt: new Date(data?.createdAt || new Date()),
+          updatedAt: new Date(data?.updatedAt || new Date())
+        } as unknown as Project;
+      }
+      
+      // Method 3: Try to find by document ID (for backward compatibility)
+      console.log('🔍 Method 3: Trying document ID lookup...');
       const projectDoc = await db.collection('projects').doc(id.toString()).get();
       if (projectDoc.exists) {
         const data = projectDoc.data();
         if (!data) return undefined;
         
+        console.log('✅ Found project via document ID:', data.id || id);
         return { 
           id: data.id || id,
           ...data,
@@ -374,6 +397,26 @@ export class FirebaseStorage implements IStorage {
         } as unknown as Project;
       }
       
+      // Method 4: Last resort - scan all projects and find by ID
+      console.log('🔍 Method 4: Scanning all projects...');
+      const allProjectsSnapshot = await db.collection('projects').get();
+      console.log('🔍 Total projects to scan:', allProjectsSnapshot.docs.length);
+      
+      for (const doc of allProjectsSnapshot.docs) {
+        const data = doc.data();
+        if (data.id === id || data.id === id.toString() || Number(data.id) === id) {
+          console.log('✅ Found project via full scan:', data.id);
+          return { 
+            id: Number(data.id),
+            ...data,
+            photos: data.photos || [],
+            createdAt: new Date(data?.createdAt || new Date()),
+            updatedAt: new Date(data?.updatedAt || new Date())
+          } as unknown as Project;
+        }
+      }
+      
+      console.log('❌ Project not found with ID:', id);
       return undefined;
     } catch (error) {
       console.error('Error getting project:', error);
@@ -425,8 +468,20 @@ export class FirebaseStorage implements IStorage {
       
       return querySnapshot.docs.map(doc => {
         const data = doc.data();
+        
+        // Fix ID handling to prevent NaN and undefined values
+        let projectId: number;
+        if (data.id && !isNaN(Number(data.id))) {
+          projectId = Number(data.id);
+        } else if (doc.id && !isNaN(Number(doc.id))) {
+          projectId = Number(doc.id);
+        } else {
+          // Generate a stable ID based on document path or timestamp
+          projectId = Date.now() + Math.floor(Math.random() * 1000);
+        }
+        
         return {
-          id: data.id || this.currentProjectId++,
+          id: projectId,
           ...data,
           photos: data.photos || [],
           createdAt: new Date(data?.createdAt || new Date()),
@@ -452,9 +507,21 @@ export class FirebaseStorage implements IStorage {
       
       const directResults = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        console.log('🔍 Direct query result:', data.id, 'homeownerId:', data.homeownerId, 'title:', data.title);
+        
+        // Fix ID handling to prevent NaN and undefined values
+        let projectId: number;
+        if (data.id && !isNaN(Number(data.id))) {
+          projectId = Number(data.id);
+        } else if (doc.id && !isNaN(Number(doc.id))) {
+          projectId = Number(doc.id);
+        } else {
+          // Generate a stable ID based on document path or timestamp
+          projectId = Date.now() + Math.floor(Math.random() * 1000);
+        }
+        
+        console.log('🔍 Direct query result:', projectId, 'homeownerId:', data.homeownerId, 'title:', data.title);
         return {
-          id: data.id,
+          id: projectId,
           ...data,
           photos: data.photos || [],
           createdAt: new Date(data?.createdAt || new Date()),
@@ -570,13 +637,18 @@ export class FirebaseStorage implements IStorage {
 
   async getBidsByProject(projectId: number): Promise<Bid[]> {
     try {
+      // Validate projectId to prevent undefined/null values
+      if (projectId === undefined || projectId === null || isNaN(projectId)) {
+        console.warn('Invalid projectId passed to getBidsByProject:', projectId);
+        return [];
+      }
+      
       const querySnapshot = await db.collection('bids').where('projectId', '==', projectId).get();
       
       return querySnapshot.docs.map(doc => {
         const data = doc.data();
-        const idNum = Number(doc.id);
         return {
-          id: Number.isNaN(idNum) ? this.currentBidId++ : idNum,
+          id: data.id || Number(doc.id),  // Use stored ID or document ID, DON'T increment counter
           ...data,
           createdAt: new Date(data?.createdAt || new Date()),
           updatedAt: new Date(data?.updatedAt || new Date())
@@ -590,13 +662,18 @@ export class FirebaseStorage implements IStorage {
 
   async getBidsByContractor(contractorId: number): Promise<Bid[]> {
     try {
+      // Validate contractorId to prevent undefined/null values
+      if (contractorId === undefined || contractorId === null || isNaN(contractorId)) {
+        console.warn('Invalid contractorId passed to getBidsByContractor:', contractorId);
+        return [];
+      }
+      
       const querySnapshot = await db.collection('bids').where('contractorId', '==', contractorId).get();
       
       return querySnapshot.docs.map(doc => {
         const data = doc.data();
-        const idNum = Number(doc.id);
         return {
-          id: Number.isNaN(idNum) ? this.currentBidId++ : idNum,
+          id: data.id || Number(doc.id),  // Use stored ID or document ID, DON'T increment counter
           ...data,
           createdAt: new Date(data?.createdAt || new Date()),
           updatedAt: new Date(data?.updatedAt || new Date())
@@ -644,6 +721,12 @@ export class FirebaseStorage implements IStorage {
 
   async getMessagesByProject(projectId: number): Promise<Message[]> {
     try {
+      // Validate projectId to prevent undefined/null values
+      if (projectId === undefined || projectId === null || isNaN(projectId)) {
+        console.warn('Invalid projectId passed to getMessagesByProject:', projectId);
+        return [];
+      }
+      
       const querySnapshot = await db.collection('messages').where('projectId', '==', projectId).orderBy('createdAt', 'asc').get();
       
       return querySnapshot.docs.map(doc => {

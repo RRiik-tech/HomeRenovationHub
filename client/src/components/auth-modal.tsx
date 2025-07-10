@@ -106,8 +106,20 @@ export default function AuthModal({ children }: AuthModalProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Login failed with status ${response.status}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // If parsing fails, use default message
+        }
+        throw new Error(errorMessage);
+      }
+      
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message);
       return result;
     },
     onSuccess: (data) => {
@@ -137,8 +149,18 @@ export default function AuthModal({ children }: AuthModalProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(userData),
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message);
+      
+      let result;
+      try {
+        const text = await response.text();
+        result = text ? JSON.parse(text) : {};
+      } catch (error) {
+        throw new Error("Invalid response from server");
+      }
+      
+      if (!response.ok) {
+        throw new Error(result.message || `Registration failed with status ${response.status}`);
+      }
       return result;
     },
     onSuccess: (data) => {

@@ -1,3 +1,3 @@
-import { MemoryStorage } from './memory-storage';
+import { FirebaseStorage } from './firebase-storage';
 
-export const storage = new MemoryStorage();
+export const storage = new FirebaseStorage();

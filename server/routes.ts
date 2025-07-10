@@ -1028,6 +1028,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug route for data type analysis
+  app.get("/api/debug/project/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      console.log('🔍 DETAILED DEBUG for ID:', id, 'type:', typeof id);
+      
+      // Get all projects and analyze them
+      const allProjects = await getProjects();
+      console.log('🔍 Total projects:', allProjects.length);
+      
+      // Analyze the first few projects for data structure
+      const sampleProjects = allProjects.slice(0, 5);
+      console.log('🔍 Sample project analysis:');
+      sampleProjects.forEach((p, i) => {
+        console.log(`  ${i + 1}. ID: ${p.id} (type: ${typeof p.id}) | Title: ${p.title}`);
+      });
+      
+      // Try different comparison methods
+      const exactMatch = allProjects.find(p => p.id === id);
+      const numberMatch = allProjects.find(p => Number(p.id) === id);
+      const stringMatch = allProjects.find(p => String(p.id) === String(id));
+      
+      console.log('🔍 Search results:');
+      console.log('  - Exact match (===):', exactMatch ? 'FOUND' : 'NOT FOUND');
+      console.log('  - Number match:', numberMatch ? 'FOUND' : 'NOT FOUND');  
+      console.log('  - String match:', stringMatch ? 'FOUND' : 'NOT FOUND');
+      
+      const foundProject = exactMatch || numberMatch || stringMatch;
+      
+      if (foundProject) {
+        console.log('✅ Found project:', foundProject.id, foundProject.title);
+        res.json({ 
+          found: true, 
+          project: foundProject,
+          searchedId: id,
+          projectIdType: typeof foundProject.id,
+          matchMethod: exactMatch ? 'exact' : numberMatch ? 'number' : 'string'
+        });
+      } else {
+        // Show all project IDs for debugging
+        const allIds = allProjects.map(p => ({ id: p.id, type: typeof p.id }));
+        
+        res.json({ 
+          found: false, 
+          searchedId: id,
+          searchedIdType: typeof id,
+          totalProjects: allProjects.length,
+          allProjectIds: allIds.slice(0, 15), // First 15 for debugging
+          note: 'No project found with any comparison method'
+        });
+      }
+    } catch (error: any) {
+      console.error('🚀 DEBUG ERROR:', error);
+      res.status(500).json({ 
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  });
+
   // User stats endpoint for profile page
   app.get("/api/users/:id/stats", async (req, res) => {
     try {

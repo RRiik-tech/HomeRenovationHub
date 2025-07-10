@@ -19,7 +19,6 @@
   to = "http://localhost:3000/api/:splat"
   status = 200
   force = false
-  conditions = {Role = ["admin"]}
 
 # Security headers
 [[headers]]
@@ -49,10 +48,46 @@
   [headers.values]
     Content-Type = "application/manifest+json"
 
-# Functions for serverless backend (optional)
+# Functions for serverless backend with Firebase
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+
+# Redirects for API endpoints to functions
+[[redirects]]
+  from = "/api/auth/register"
+  to = "/.netlify/functions/auth-register"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth/login"
+  to = "/.netlify/functions/auth-login"
+  status = 200
+
+[[redirects]]
+  from = "/api/auth/firebase"
+  to = "/.netlify/functions/auth-firebase"
+  status = 200
+
+[[redirects]]
+  from = "/api/users/*"
+  to = "/.netlify/functions/users"
+  status = 200
+
+[[redirects]]
+  from = "/api/contractors/*"
+  to = "/.netlify/functions/contractors"
+  status = 200
+
+[[redirects]]
+  from = "/api/projects/*"
+  to = "/.netlify/functions/projects"
+  status = 200
+
+[[redirects]]
+  from = "/api/bids/*"
+  to = "/.netlify/functions/bids"
+  status = 200
 
 # Dev server configuration
 [dev]

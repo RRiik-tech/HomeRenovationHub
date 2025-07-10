@@ -3,7 +3,7 @@ import { authManager } from '@/lib/auth';
 import { User } from '@shared/schema';
 
 export function useAuth() {
-  const [state, setState] = useState(authManager.getState());
+  const [state, setState] = useState(() => authManager.getState());
 
   useEffect(() => {
     const unsubscribe = authManager.subscribe(setState);

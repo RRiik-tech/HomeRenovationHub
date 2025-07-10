@@ -17,9 +17,11 @@ class AuthManager {
   constructor() {
     // Load user from localStorage on init
     const savedUser = localStorage.getItem('user');
+    
     if (savedUser) {
       try {
-        this.state.user = JSON.parse(savedUser);
+        const parsedUser = JSON.parse(savedUser);
+        this.state.user = parsedUser;
         this.state.isAuthenticated = true;
       } catch (error) {
         console.error('Error parsing saved user data:', error);
@@ -29,7 +31,7 @@ class AuthManager {
   }
 
   getState(): AuthState {
-    return this.state;
+    return { ...this.state };
   }
 
   subscribe(listener: (state: AuthState) => void): () => void {
@@ -43,13 +45,19 @@ class AuthManager {
   }
 
   private notify() {
-    this.listeners.forEach(listener => listener(this.state));
+    this.listeners.forEach(listener => listener({ ...this.state }));
   }
 
   login(user: User) {
     this.state.user = user;
     this.state.isAuthenticated = true;
-    localStorage.setItem('user', JSON.stringify(user));
+    
+    try {
+      localStorage.setItem('user', JSON.stringify(user));
+    } catch (error) {
+      console.error('Error saving user to localStorage:', error);
+    }
+    
     this.notify();
   }
 
