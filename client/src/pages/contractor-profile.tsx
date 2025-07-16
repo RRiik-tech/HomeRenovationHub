@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { ContractorWithUser } from "@/types/api";
 import { useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,11 @@ export default function ContractorProfile() {
   const [, params] = useRoute("/contractors/:id");
   const contractorId = parseInt(params?.id || "0");
 
-  const { data: contractor, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: [`/api/contractors/${contractorId}`],
     enabled: !!contractorId,
   });
+  const contractor = data as ContractorWithUser | undefined;
 
   const renderStars = (rating: string) => {
     const numRating = parseFloat(rating);
@@ -187,7 +189,7 @@ export default function ContractorProfile() {
               
               <div className="flex items-center justify-center mb-4">
                 <div className="flex">
-                  {renderStars(contractor.rating)}
+                  {renderStars(contractor.rating ?? '0')}
                 </div>
                 <span className="text-gray-500 ml-2">
                   {contractor.rating} ({contractor.reviewCount} reviews)

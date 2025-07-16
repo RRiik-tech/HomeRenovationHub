@@ -1,112 +1,73 @@
-import React from "react";
-import { Router, Route, Switch } from "wouter";
-import { Toaster } from "@/components/ui/toaster";
-import { useAuth } from "@/hooks/use-auth";
-import { useMobile } from "@/hooks/use-mobile";
-import { MobileAppShell } from "@/components/mobile-app-shell";
-import Navigation from "@/components/navigation";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from './components/ui/toaster';
+import { ThemeProvider } from 'next-themes';
 
 // Pages
-import Home from "@/pages/home";
-import FindContractors from "@/pages/find-contractors";
-import PostProject from "@/pages/post-project";
-import ProjectDetails from "@/pages/project-details";
-import ContractorProfile from "@/pages/contractor-profile";
-import Profile from "@/pages/profile";
-import UserDashboard from "@/pages/user-dashboard";
-import ContractorDashboard from "@/pages/contractor-dashboard";
-import BidManagement from "@/pages/bid-management";
-import ContractorBidManagement from "@/pages/contractor-bid-management";
-import Messaging from "@/pages/messaging";
-import AIRecommendations from "@/pages/ai-recommendations";
-import Analytics from "@/pages/analytics";
-import Reviews from "@/pages/reviews";
-import Payments from "@/pages/payments";
-import Documents from "@/pages/documents";
-import Calendar from "@/pages/calendar";
-import Notifications from "@/pages/notifications";
-import Marketplace from "@/pages/marketplace";
-import MobilePage from "@/pages/mobile";
-import FeatureTest from "@/pages/feature-test";
-import NotFound from "@/pages/not-found";
+import Home from './pages/home';
+import UserDashboard from './pages/user-dashboard';
+import ContractorDashboard from './pages/contractor-dashboard';
+import ProjectDetails from './pages/project-details';
+import PostProject from './pages/post-project';
+import FindContractors from './pages/find-contractors';
+import ContractorProfile from './pages/contractor-profile';
+import Marketplace from './pages/marketplace';
+import Messages from './pages/messaging';
+import Notifications from './pages/notifications';
+import Calendar from './pages/calendar';
+import Documents from './pages/documents';
+import Payments from './pages/payments';
+import Reviews from './pages/reviews';
+import Analytics from './pages/analytics';
+import NotFound from './pages/not-found';
 
-console.log("App.tsx loaded");
+// Components
+import Navigation from './components/navigation';
+import { AuthProvider } from './hooks/use-auth';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+    },
+  },
+});
 
 function App() {
-  const { isAuthenticated, user } = useAuth();
-  const isMobile = useMobile();
-
-  // Mobile App Shell for mobile devices
-  if (isMobile) {
-    return (
-      <Router>
-        <MobileAppShell>
-          <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/find-contractors" component={FindContractors} />
-            <Route path="/post-project" component={PostProject} />
-            <Route path="/project/:id" component={ProjectDetails} />
-            <Route path="/contractor/:id" component={ContractorProfile} />
-            <Route path="/profile" component={Profile} />
-            <Route path="/user-dashboard" component={UserDashboard} />
-            <Route path="/contractor-dashboard" component={ContractorDashboard} />
-            <Route path="/bid-management" component={BidManagement} />
-            <Route path="/contractor-bid-management" component={ContractorBidManagement} />
-            <Route path="/messaging" component={Messaging} />
-            <Route path="/messages" component={Messaging} />
-            <Route path="/ai-recommendations/:projectId" component={AIRecommendations} />
-            <Route path="/analytics" component={Analytics} />
-            <Route path="/reviews" component={Reviews} />
-            <Route path="/payments" component={Payments} />
-            <Route path="/documents" component={Documents} />
-            <Route path="/calendar" component={Calendar} />
-            <Route path="/notifications" component={Notifications} />
-            <Route path="/marketplace" component={Marketplace} />
-            <Route path="/mobile" component={MobilePage} />
-            <Route path="/feature-test" component={FeatureTest} />
-            <Route component={NotFound} />
-          </Switch>
-        </MobileAppShell>
-        <Toaster />
-      </Router>
-    );
-  }
-
-  // Desktop layout
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-50">
-        <Navigation />
-        <main>
-          <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/find-contractors" component={FindContractors} />
-            <Route path="/post-project" component={PostProject} />
-            <Route path="/project/:id" component={ProjectDetails} />
-            <Route path="/contractor/:id" component={ContractorProfile} />
-            <Route path="/profile" component={Profile} />
-            <Route path="/user-dashboard" component={UserDashboard} />
-            <Route path="/contractor-dashboard" component={ContractorDashboard} />
-            <Route path="/bid-management" component={BidManagement} />
-            <Route path="/contractor-bid-management" component={ContractorBidManagement} />
-            <Route path="/messaging" component={Messaging} />
-            <Route path="/messages" component={Messaging} />
-            <Route path="/ai-recommendations/:projectId" component={AIRecommendations} />
-            <Route path="/analytics" component={Analytics} />
-            <Route path="/reviews" component={Reviews} />
-            <Route path="/payments" component={Payments} />
-            <Route path="/documents" component={Documents} />
-            <Route path="/calendar" component={Calendar} />
-            <Route path="/notifications" component={Notifications} />
-            <Route path="/marketplace" component={Marketplace} />
-            <Route path="/mobile" component={MobilePage} />
-            <Route path="/feature-test" component={FeatureTest} />
-            <Route component={NotFound} />
-          </Switch>
-        </main>
-      </div>
-      <Toaster />
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <AuthProvider>
+          <Router>
+            <div className="min-h-screen bg-background">
+              <Navigation />
+              <main className="container mx-auto px-4 py-8">
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/dashboard" element={<UserDashboard />} />
+                  <Route path="/contractor/dashboard" element={<ContractorDashboard />} />
+                  <Route path="/projects/:id" element={<ProjectDetails />} />
+                  <Route path="/post-project" element={<PostProject />} />
+                  <Route path="/find-contractors" element={<FindContractors />} />
+                  <Route path="/contractor/:id" element={<ContractorProfile />} />
+                  <Route path="/marketplace" element={<Marketplace />} />
+                  <Route path="/messages" element={<Messages />} />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/calendar" element={<Calendar />} />
+                  <Route path="/documents" element={<Documents />} />
+                  <Route path="/payments" element={<Payments />} />
+                  <Route path="/reviews" element={<Reviews />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+              <Toaster />
+            </div>
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

@@ -20,6 +20,10 @@ export const users = pgTable("users", {
   isVerified: boolean("is_verified").default(false),
   firebaseUid: text("firebase_uid").unique(),
   photoURL: text("photo_url"),
+  bio: text("bio"),
+  company: text("company"),
+  website: text("website"),
+  linkedin: text("linkedin"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -1,4 +1,4 @@
-import type { Project, Contractor, Bid, User, Message } from "@shared/schema";
+import type { Project, Contractor, Bid, Message } from "@shared/schema";
 
 export interface ApiResponse<T> {
   data: T;
@@ -33,4 +33,29 @@ export interface Conversation {
 
 export interface MessageWithSender extends Message {
   sender: User;
+}
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  userType: string;
+  isVerified?: boolean;
+  firebaseUid?: string;
+  photoURL?: string | null;
+  createdAt: Date;
+  bio?: string;
+  company?: string;
+  website?: string;
+  linkedin?: string;
 } 

@@ -662,7 +662,7 @@ export default function UserDashboard() {
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-3 mb-4">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={connection.contractor.user.photoURL || undefined} />
+                      <AvatarImage src={connection.contractor.user.photoURL ?? undefined} />
                       <AvatarFallback>
                         {connection.contractor.user.firstName[0]}{connection.contractor.user.lastName[0]}
                       </AvatarFallback>

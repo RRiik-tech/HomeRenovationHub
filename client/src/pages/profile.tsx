@@ -32,6 +32,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
+interface UserStats {
+  totalProjects: number;
+  averageRating: number;
+  totalReviews: number;
+  memberSince: string;
+}
+
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
   const { toast } = useToast();
@@ -79,7 +86,7 @@ export default function ProfilePage() {
   }, [user]);
 
   // Fetch user stats
-  const { data: userStats } = useQuery({
+  const { data: userStats } = useQuery<UserStats>({
     queryKey: [`/api/users/${user?.id}/stats`],
     enabled: !!user?.id,
   });
@@ -87,16 +94,20 @@ export default function ProfilePage() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (updatedData: any) => {
-      return apiRequest(`/api/users/${user?.id}`, {
+      const response = await fetch(`/api/users/${user?.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(updatedData),
       });
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+      return response.json();
     },
     onSuccess: (data) => {
-      updateUser(data);
+      updateUser(data.user || data);
       setIsEditing(false);
       toast({
         title: "Profile Updated",
@@ -213,7 +224,7 @@ export default function ProfilePage() {
               {/* Profile Picture Section */}
               <div className="flex items-center space-x-4">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={user.photoURL} />
+                  <AvatarImage src={user.photoURL ?? undefined} />
                   <AvatarFallback className="text-xl bg-primary text-white">
                     {getInitials(user.firstName, user.lastName)}
                   </AvatarFallback>

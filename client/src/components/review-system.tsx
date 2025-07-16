@@ -532,7 +532,7 @@ export function ReviewSystem({ projectId, contractorId, canReview = false, showR
                 <div key={review.id} className="border-b border-gray-200 pb-6 last:border-b-0">
                   <div className="flex items-start space-x-4">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={review.reviewer?.photoURL} />
+                      <AvatarImage src={review.reviewer?.photoURL ?? undefined} />
                       <AvatarFallback>
                         {review.reviewer?.firstName?.[0]}{review.reviewer?.lastName?.[0]}
                       </AvatarFallback>

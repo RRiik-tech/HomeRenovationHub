@@ -10,6 +10,7 @@ import { Send, ArrowLeft, User, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
+import type { Conversation, MessageWithSender } from "@/types/api";
 
 export default function Messaging() {
   const [, params] = useRoute("/messaging/:projectId?");
@@ -23,11 +24,11 @@ export default function Messaging() {
   // Mock current user ID (in real app, this would come from auth context)
   const currentUserId = 1;
 
-  const { data: conversations = [], isLoading: conversationsLoading } = useQuery({
+  const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
     queryKey: [`/api/users/${currentUserId}/conversations`],
   });
 
-  const { data: messages = [], isLoading: messagesLoading } = useQuery({
+  const { data: messages = [], isLoading: messagesLoading } = useQuery<MessageWithSender[]>({
     queryKey: [`/api/projects/${selectedConversation?.projectId}/messages`],
     enabled: !!selectedConversation?.projectId,
   });

@@ -10,6 +10,7 @@ import { PROJECT_CATEGORIES } from "@/lib/constants";
 import { Search, Filter, MapPin, Loader2, AlertCircle } from "lucide-react";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { useToast } from "@/hooks/use-toast";
+import type { ContractorWithUser } from "@/types/api";
 
 export default function FindContractors() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -33,7 +34,7 @@ export default function FindContractors() {
     return params.toString();
   };
 
-  const { data: contractors = [], isLoading } = useQuery({
+  const { data: contractors = [], isLoading } = useQuery<ContractorWithUser[]>({
     queryKey: ["/api/contractors", buildQueryParams()],
     refetchOnWindowFocus: false,
   });

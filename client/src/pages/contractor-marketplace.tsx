@@ -464,7 +464,7 @@ function ContractorCard({
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-3">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={contractor.profileImage} />
+                  <AvatarImage src={contractor.profileImage ?? undefined} />
                   <AvatarFallback>{contractor.companyName[0]}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -564,7 +564,7 @@ function ContractorCard({
           // List View
           <div className="flex items-center space-x-6">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={contractor.profileImage} />
+              <AvatarImage src={contractor.profileImage ?? undefined} />
               <AvatarFallback>{contractor.companyName[0]}</AvatarFallback>
             </Avatar>
 

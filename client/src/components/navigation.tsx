@@ -85,7 +85,7 @@ export default function Navigation() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={user.photoURL || undefined} alt={user.firstName} />
+                      <AvatarImage src={user.photoURL ?? undefined} alt={user.firstName} />
                       <AvatarFallback className="bg-primary text-white">
                         {getInitials(user.firstName, user.lastName)}
                       </AvatarFallback>
@@ -240,7 +240,7 @@ export default function Navigation() {
               {isAuthenticated && user ? (
                 <div className="flex items-center px-3 mb-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={user.photoURL || undefined} alt={user.firstName} />
+                    <AvatarImage src={user.photoURL ?? undefined} alt={user.firstName} />
                     <AvatarFallback className="bg-primary text-white">
                       {getInitials(user.firstName, user.lastName)}
                     </AvatarFallback>

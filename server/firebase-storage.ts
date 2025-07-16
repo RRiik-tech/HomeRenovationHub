@@ -847,6 +847,50 @@ export class FirebaseStorage implements IStorage {
       return [];
     }
   }
+
+  // --- STUBS FOR MISSING METHODS ---
+  async createNotification(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
+  async getNotificationsByUser(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
+  async markNotificationAsRead(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
+  async getUnreadNotificationCount(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
+  async createDocument(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
+  async getDocumentsByProject(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
+  async deleteDocument(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
+  async createPayment(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
+  async getPaymentsByProject(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
+  async getPaymentsByUser(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
+  async updatePaymentStatus(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
+  async createMilestone(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
+  async getMilestonesByProject(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
+  async updateMilestoneStatus(...args: any[]): Promise<any> {
+    throw new Error('Not implemented');
+  }
 }
 
 export const storage = new FirebaseStorage();

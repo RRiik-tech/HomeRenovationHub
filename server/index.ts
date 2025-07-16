@@ -1,10 +1,18 @@
-import 'dotenv/config';
-import express, { type Request, Response, NextFunction } from "express";
+import express from "express";
+import { createServer } from "http";
+import { WebSocketServer } from "ws";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-// import { ChatServer } from "./websocket";
+import { setupVite, log } from "./vite";
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
+const server = createServer(app);
+const wss = new WebSocketServer({ server });
+
+// Setup routes and middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -21,51 +29,20 @@ app.use((req, res, next) => {
   }
 });
 
-// Logging middleware
-app.use((req, res, next) => {
-  const start = Date.now();
-  const { method, url } = req;
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    const { statusCode } = res;
-    const coloredMethod = `\x1b[36m${method}\x1b[0m`;
-    const coloredStatus = statusCode >= 400 ? `\x1b[31m${statusCode}\x1b[0m` : `\x1b[32m${statusCode}\x1b[0m`;
-    if (!url.startsWith('/@') && !url.includes('hot-update')) {
-      log(`${coloredMethod} ${url} ${coloredStatus} in ${duration}ms`);
-    }
+// Register routes
+registerRoutes(app);
+
+// Setup Vite in development mode
+if (process.env.NODE_ENV === "development") {
+  setupVite(app).catch((err) => {
+    console.error('Failed to setup Vite:', err);
+    process.exit(1);
   });
-  next();
+}
+
+const PORT = parseInt(process.env.PORT || '3001', 10);
+
+server.listen(PORT, () => {
+  log(`[express] 🚀 Server running on http://localhost:${PORT}`);
+  log(`[express] 📱 API available at http://localhost:${PORT}/api`);
 });
-
-(async () => {
-  const server = await registerRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // Initialize WebSocket server (temporarily disabled)
-  // const chatServer = new ChatServer(server);
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // ALWAYS serve the app on port 3000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 3000;
-  server.listen(port, "127.0.0.1", () => {
-    log(`serving on port ${port}`);
-    // log(`WebSocket server ready for real-time chat`);
-  });
-})();

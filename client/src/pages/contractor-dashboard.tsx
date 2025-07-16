@@ -306,7 +306,7 @@ export default function ContractorDashboard() {
       <div className="flex justify-between items-start mb-8">
         <div className="flex items-center space-x-4">
           <Avatar className="h-16 w-16">
-            <AvatarImage src={contractor.user.photoURL} />
+            <AvatarImage src={contractor.user.photoURL ?? undefined} />
             <AvatarFallback>
               {contractor.user.firstName[0]}{contractor.user.lastName[0]}
             </AvatarFallback>

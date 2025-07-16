@@ -21,12 +21,7 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-export async function setupVite(app: Express, server: Server) {
-  const serverOptions = {
-    middlewareMode: true,
-    hmr: { server },
-  };
-
+export async function setupVite(app: Express) {
   const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
@@ -34,14 +29,33 @@ export async function setupVite(app: Express, server: Server) {
       ...viteLogger,
       error: (msg, options) => {
         viteLogger.error(msg, options);
-        process.exit(1);
+        // Don't exit on error in development
+        if (process.env.NODE_ENV === 'production') {
+          process.exit(1);
+        }
       },
     },
-    server: serverOptions,
+    server: {
+      middlewareMode: true,
+      watch: {
+        usePolling: true,
+        interval: 100,
+      },
+    },
     appType: "custom",
   });
 
   app.use(vite.middlewares);
+
+  // Prevent direct access to .ts/.tsx source files in dev
+  app.use((req, res, next) => {
+    if (/\.(ts|tsx)$/.test(req.url)) {
+      res.status(404).send('Not found');
+      return;
+    }
+    next();
+  });
+
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
@@ -74,9 +88,10 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
+  const distPath = path.resolve(__dirname, "..", "client", "dist");
 
   if (!fs.existsSync(distPath)) {
+    log("Build directory not found. Building client...");
     throw new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );

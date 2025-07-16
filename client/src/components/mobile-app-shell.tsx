@@ -208,7 +208,7 @@ export function MobileAppShell({ children }: MobileAppShellProps) {
           <div className="flex items-center space-x-2">
             <NotificationBell />
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.photoURL} />
+              <AvatarImage src={user?.photoURL ?? undefined} />
               <AvatarFallback>
                 {user?.firstName?.[0]}{user?.lastName?.[0]}
               </AvatarFallback>
@@ -330,7 +330,7 @@ function MobileSidebar() {
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           <Avatar className="h-12 w-12">
-            <AvatarImage src={user?.photoURL} />
+            <AvatarImage src={user?.photoURL ?? undefined} />
             <AvatarFallback>
               {user?.firstName?.[0]}{user?.lastName?.[0]}
             </AvatarFallback>

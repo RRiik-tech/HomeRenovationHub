@@ -826,7 +826,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      const compatibilityScores = await aiService.findCompatibleContractors(project);
+      const compatibilityScores = await aiService.findCompatibleContractors({
+        ...project,
+        photos: (project.photos ?? []) as string[]
+      });
       
       // Get contractor details for each score
       const recommendations = await Promise.all(
